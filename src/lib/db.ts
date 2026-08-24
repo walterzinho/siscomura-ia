@@ -14,7 +14,6 @@ function createPrismaClient(): PrismaClient {
     const adapter = new PrismaLibSQL(libsql)
     return new PrismaClient({
       adapter,
-      datasources: { db: { url: 'file:./dev.db' } },
     })
   }
 
