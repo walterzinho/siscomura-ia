@@ -6,20 +6,35 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-function createPrismaClient() {
+export let db: PrismaClient
+let dbError: string | null = null
+
+try {
   const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db'
 
-  // Si la URL empieza con "libsql://", usar el adapter de Turso (para Vercel)
   if (databaseUrl.startsWith('libsql://')) {
     const libsql = createClient({ url: databaseUrl })
     const adapter = new PrismaLibSql(libsql)
-    return new PrismaClient({ adapter, log: ['query'] })
+    db = new PrismaClient({ adapter, log: [] })
+  } else {
+    db = new PrismaClient({ log: [] })
   }
-
-  // SQLite local (desarrollo)
-  return new PrismaClient({ log: ['query'] })
+} catch (err) {
+  dbError = err instanceof Error ? err.message : 'Error desconocido'
+  db = new PrismaClient()
 }
 
-export const db = globalForPrisma.prisma ?? createPrismaClient()
-
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+
+export function getDbError() {
+  return dbError
+}
+
+export async function checkDbConnection(): Promise<boolean> {
+  try {
+    await db.apiKey.count()
+    return true
+  } catch {
+    return false
+  }
+}

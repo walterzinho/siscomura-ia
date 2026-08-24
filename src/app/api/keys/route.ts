@@ -18,7 +18,8 @@ export async function GET() {
     }));
     return NextResponse.json(safeKeys);
   } catch (error) {
-    return NextResponse.json({ error: 'Error al obtener API Keys' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Error desconocido';
+    return NextResponse.json({ error: 'Error al obtener API Keys', detail: msg }, { status: 500 });
   }
 }
 
@@ -49,7 +50,8 @@ export async function POST(request: NextRequest) {
       isActive: apiKey.isActive,
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Error al crear API Key' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Error desconocido';
+    return NextResponse.json({ error: 'Error al crear API Key', detail: msg }, { status: 500 });
   }
 }
 
@@ -72,7 +74,8 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Error al actualizar API Key' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Error desconocido';
+    return NextResponse.json({ error: 'Error al actualizar API Key', detail: msg }, { status: 500 });
   }
 }
 
@@ -89,6 +92,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Error al eliminar API Key' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Error desconocido';
+    return NextResponse.json({ error: 'Error al eliminar API Key', detail: msg }, { status: 500 });
   }
 }
