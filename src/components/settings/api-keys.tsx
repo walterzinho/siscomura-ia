@@ -47,7 +47,7 @@ export function ApiKeysManager() {
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [newName, setNewName] = useState('');
   const [newKey, setNewKey] = useState('');
-  const [newModel, setNewModel] = useState('gemini-2.0-flash');
+  const [newModel, setNewModel] = useState('gemini-2.5-flash');
   const [saving, setSaving] = useState(false);
 
   const fetchKeys = useCallback(async () => {
@@ -84,7 +84,7 @@ export function ApiKeysManager() {
         toast.success('API Key agregada correctamente');
         setNewName('');
         setNewKey('');
-        setNewModel('gemini-2.0-flash');
+        setNewModel('gemini-2.5-flash');
         setShowAddDialog(false);
         fetchKeys();
       } else {
@@ -177,7 +177,7 @@ export function ApiKeysManager() {
                 <Label htmlFor="key-model">Modelo</Label>
                 <Input
                   id="key-model"
-                  placeholder="gemini-2.0-flash"
+                  placeholder="gemini-2.5-flash"
                   value={newModel}
                   onChange={(e) => setNewModel(e.target.value)}
                 />

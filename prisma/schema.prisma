@@ -11,7 +11,7 @@ model ApiKey {
   id         String   @id @default(cuid())
   name       String
   key        String
-  model      String   @default("gemini-2.0-flash")
+  model      String   @default("gemini-2.5-flash")
   isActive   Boolean  @default(true)
   usageCount Int      @default(0)
   lastUsedAt DateTime?
