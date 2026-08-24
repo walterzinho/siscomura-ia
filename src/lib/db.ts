@@ -10,7 +10,10 @@ function createPrismaClient(): PrismaClient {
   const databaseUrl = process.env.DATABASE_URL || ''
 
   if (databaseUrl.startsWith('libsql://')) {
-    const libsql = createClient({ url: databaseUrl })
+    const libsql = createClient({
+      url: databaseUrl,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    })
     const adapter = new PrismaLibSQL(libsql)
     return new PrismaClient({
       adapter,
@@ -23,8 +26,6 @@ function createPrismaClient(): PrismaClient {
 /**
  * Lazy Prisma client — defers reading DATABASE_URL until first actual
  * database operation (request-time) instead of module-import time.
- * This fixes Vercel serverless where env vars may not be available at
- * module load but are available inside request handlers.
  */
 export const db = new Proxy({} as PrismaClient, {
   get(_target, prop) {
