@@ -9,14 +9,10 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient(): PrismaClient {
   const databaseUrl = process.env.DATABASE_URL || ''
 
-  // Si la URL empieza con "libsql://", usar el adapter de Turso (para Vercel)
   if (databaseUrl.startsWith('libsql://')) {
     const libsql = createClient({ url: databaseUrl })
     const adapter = new PrismaLibSQL(libsql)
-    return new PrismaClient({
-      adapter,
-      datasources: { db: { url: 'file:./dummy.db' } },
-    })
+    return new PrismaClient({ adapter })
   }
 
   // SQLite local (desarrollo)
