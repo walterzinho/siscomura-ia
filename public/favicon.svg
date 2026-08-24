@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Fondo esmeralda con forma de escudo samurai -->
+  <rect width="64" height="64" rx="12" fill="#059669"/>
+  
+  <!-- Forma del casco kabuto estilizado -->
+  <path d="M12 32 C12 18, 20 10, 32 10 C44 10, 52 18, 52 32" 
+        stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/>
+  
+  <!-- Ala central del kabuto (maedate) -->
+  <path d="M32 10 L28 22 L32 18 L36 22 Z" fill="#fff" opacity="0.95"/>
+  
+  <!-- Ondas de radio que salen del kabuto -->
+  <path d="M22 38 C22 30, 26 26, 32 26 C38 26, 42 30, 42 38" 
+        stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.9"/>
+  <path d="M18 42 C18 32, 24 24, 32 24 C40 24, 46 32, 46 42" 
+        stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5"/>
+  <path d="M14 46 C14 34, 22 22, 32 22 C42 22, 50 34, 50 46" 
+        stroke="#fff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.25"/>
+  
+  <!-- Punto central (microchip/IA) -->
+  <circle cx="32" cy="34" r="3" fill="#fff" opacity="0.95"/>
+  
+  <!-- Linea base tipo menpo (barbilla samurai) -->
+  <path d="M20 46 L32 50 L44 46" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7"/>
+</svg>
