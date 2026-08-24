@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
-import { checkDbConnection, getDbError } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function GET() {
-  const connected = await checkDbConnection();
-  return NextResponse.json({
-    ok: connected,
-    db: connected ? 'connected' : 'disconnected',
-    error: connected ? null : (getDbError() || 'DATABASE_URL no configurada o base de datos no accesible'),
-  });
+  try {
+    await db.apiKey.count();
+    return NextResponse.json({ ok: true, db: 'connected' });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({
+      ok: false,
+      db: 'disconnected',
+      error: msg,
+      envSet: !!process.env.DATABASE_URL,
+      envPrefix: process.env.DATABASE_URL?.substring(0, 20),
+    });
+  }
 }
