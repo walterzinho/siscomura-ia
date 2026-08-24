@@ -1,31 +1,46 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { createClient } from '@libsql/client';
 
-const DEPLOY_VERSION = 'v9-dummy-url';
+const DEPLOY_VERSION = 'v10-direct-libsql';
 
 export async function GET() {
+  const databaseUrl = (process.env.DATABASE_URL || '').trim();
+  const hasToken = !!process.env.TURSO_AUTH_TOKEN;
+
+  // Test 1: Direct libsql connection (no Prisma)
+  let libsqlOk = false;
+  let libsqlError = '';
   try {
-    await db.apiKey.count();
-    return NextResponse.json({ ok: true, db: 'connected', version: DEPLOY_VERSION });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const raw = process.env.DATABASE_URL || '';
-    const first10 = raw.substring(0, 10);
-    const charCodes = Array.from(first10).map(c => c.charCodeAt(0));
-    const trimmed = raw.trim();
-    const startsOk = trimmed.startsWith('libsql://');
-    return NextResponse.json({
-      ok: false,
-      db: 'disconnected',
-      error: msg,
-      version: DEPLOY_VERSION,
-      envSet: !!process.env.DATABASE_URL,
-      envLen: raw.length,
-      trimmedLen: trimmed.length,
-      startsOk,
-      first10,
-      charCodes,
-      authTokenSet: !!process.env.TURSO_AUTH_TOKEN,
+    const libsql = createClient({
+      url: databaseUrl,
+      authToken: process.env.TURSO_AUTH_TOKEN,
     });
+    const result = await libsql.execute('SELECT 1 as ok');
+    libsqlOk = true;
+  } catch (e) {
+    libsqlError = e instanceof Error ? e.message : String(e);
   }
+
+  // Test 2: Prisma (through proxy)
+  let prismaOk = false;
+  let prismaError = '';
+  try {
+    const { db } = await import('@/lib/db');
+    await db.apiKey.count();
+    prismaOk = true;
+  } catch (e) {
+    prismaError = e instanceof Error ? e.message : String(e);
+  }
+
+  return NextResponse.json({
+    version: DEPLOY_VERSION,
+ libsql: { ok: libsqlOk, error: libsqlError },
+    prisma: { ok: prismaOk, error: prismaError?.substring(0, 200) },
+    env: {
+      set: !!process.env.DATABASE_URL,
+      len: databaseUrl.length,
+      prefix: databaseUrl.substring(0, 30),
+      hasToken,
+    },
+  });
 }
