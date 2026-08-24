@@ -7,7 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient(): PrismaClient {
-  const databaseUrl = process.env.DATABASE_URL || ''
+  const databaseUrl = (process.env.DATABASE_URL || '').trim()
 
   if (databaseUrl.startsWith('libsql://')) {
     const libsql = createClient({
@@ -23,10 +23,6 @@ function createPrismaClient(): PrismaClient {
   return new PrismaClient()
 }
 
-/**
- * Lazy Prisma client — defers reading DATABASE_URL until first actual
- * database operation (request-time) instead of module-import time.
- */
 export const db = new Proxy({} as PrismaClient, {
   get(_target, prop) {
     if (!globalForPrisma.prisma) {

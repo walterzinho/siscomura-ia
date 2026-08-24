@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-const DEPLOY_VERSION = 'v8-debug-chars';
+const DEPLOY_VERSION = 'v9-dummy-url';
 
 export async function GET() {
   try {
