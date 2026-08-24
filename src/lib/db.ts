@@ -44,8 +44,8 @@ let _migrated = false;
 async function ensureTables() {
   if (_migrated) return;
   const c = getClient();
-  await c.execute(`
-    CREATE TABLE IF NOT EXISTS ApiKey (
+  await c.batch([
+    { sql: `CREATE TABLE IF NOT EXISTS ApiKey (
       id         TEXT PRIMARY KEY,
       name       TEXT NOT NULL,
       key        TEXT NOT NULL,
@@ -55,8 +55,8 @@ async function ensureTables() {
       lastUsedAt TEXT,
       createdAt  TEXT NOT NULL DEFAULT (datetime('now')),
       updatedAt  TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS Generation (
+    )` },
+    { sql: `CREATE TABLE IF NOT EXISTS Generation (
       id         TEXT PRIMARY KEY,
       moduleId   TEXT NOT NULL,
       moduleName TEXT NOT NULL,
@@ -65,10 +65,10 @@ async function ensureTables() {
       metadata   TEXT,
       apiKeyId   TEXT REFERENCES ApiKey(id) ON DELETE SET NULL,
       createdAt  TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-    CREATE INDEX IF NOT EXISTS idx_generation_moduleId ON Generation(moduleId);
-    CREATE INDEX IF NOT EXISTS idx_generation_createdAt ON Generation(createdAt);
-    CREATE TABLE IF NOT EXISTS StationConfig (
+    )` },
+    { sql: 'CREATE INDEX IF NOT EXISTS idx_generation_moduleId ON Generation(moduleId)' },
+    { sql: 'CREATE INDEX IF NOT EXISTS idx_generation_createdAt ON Generation(createdAt)' },
+    { sql: `CREATE TABLE IF NOT EXISTS StationConfig (
       id         TEXT PRIMARY KEY,
       nombre     TEXT NOT NULL DEFAULT '',
       url        TEXT NOT NULL DEFAULT '',
@@ -81,8 +81,8 @@ async function ensureTables() {
       urlApp     TEXT NOT NULL DEFAULT '',
       createdAt  TEXT NOT NULL DEFAULT (datetime('now')),
       updatedAt  TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS ModuleConfig (
+    )` },
+    { sql: `CREATE TABLE IF NOT EXISTS ModuleConfig (
       id          TEXT PRIMARY KEY,
       moduleId    TEXT NOT NULL UNIQUE,
       name        TEXT NOT NULL,
@@ -92,8 +92,8 @@ async function ensureTables() {
       isActive    INTEGER NOT NULL DEFAULT 1,
       createdAt   TEXT NOT NULL DEFAULT (datetime('now')),
       updatedAt   TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
+    )` },
+  ]);
   _migrated = true;
 }
 
