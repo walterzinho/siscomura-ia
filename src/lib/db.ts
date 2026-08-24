@@ -10,9 +10,12 @@ function createPrismaClient(): PrismaClient {
   const databaseUrl = (process.env.DATABASE_URL || '').trim()
 
   if (databaseUrl.startsWith('libsql://')) {
+    // Force a valid dummy URL so Prisma's internal validation passes.
+    // The adapter handles the real connection to Turso.
+    process.env.DATABASE_URL = 'file:./dummy.db'
+
     const libsql = createClient({
       url: databaseUrl,
-      authToken: process.env.TURSO_AUTH_TOKEN,
     })
     const adapter = new PrismaLibSQL(libsql)
     return new PrismaClient({

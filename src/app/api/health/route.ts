@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@libsql/client';
 
-const DEPLOY_VERSION = 'v10-direct-libsql';
+const DEPLOY_VERSION = 'v11-env-override';
 
 export async function GET() {
   const databaseUrl = (process.env.DATABASE_URL || '').trim();
