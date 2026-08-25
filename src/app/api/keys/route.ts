@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         key: key.trim(),
-        model: model || 'gemini-2.5-flash',
+        model: model || 'gemini-3.6-flash',
       },
     });
 
