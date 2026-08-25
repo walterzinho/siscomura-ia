@@ -11,6 +11,7 @@ import { SembrandoEsperanzaGenerator } from './sembrando-esperanza';
 import { PresentacionFranjasGenerator } from './presentacion-franjas';
 import { GeneradorLibretosGenerator } from './generador-libretos';
 import { ContenidoMulticanalGenerator } from './contenido-multicanal';
+import { ConexionTerritorialGenerator } from './conexion-territorial';
 import { getModuleById } from '@/lib/modules';
 
 interface ModuleRouterProps {
@@ -58,6 +59,10 @@ export function ModuleRouter({ moduleId }: ModuleRouterProps) {
 
   if (moduleId === 'noticias-multicanal') {
     return <ContenidoMulticanalGenerator />;
+  }
+
+  if (moduleId === 'conexion-territorial') {
+    return <ConexionTerritorialGenerator />;
   }
 
   if (moduleDef.hasUrl) {
