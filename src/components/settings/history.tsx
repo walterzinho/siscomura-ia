@@ -24,7 +24,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { History, Search, Trash2, Copy, Check, Eye, Calendar, Radio, Drama, Mic, Globe, Sparkles, Heart, Newspaper } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { History, Search, Trash2, Copy, Check, Eye, Calendar, Radio, Drama, Mic, Globe, Sparkles, Heart, Newspaper, Download, MoreVertical, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { MODULES } from '@/lib/modules';
 
@@ -90,6 +97,54 @@ export function HistoryPanel() {
     }
   };
 
+  const handleBulkDelete = async (url: string, label: string) => {
+    try {
+      const res = await fetch(url, { method: 'DELETE' });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`${label}: ${data.deleted} registros eliminados`);
+        fetchHistory();
+      } else {
+        toast.error('Error al eliminar');
+      }
+    } catch {
+      toast.error('Error al eliminar');
+    }
+  };
+
+  const handleExport = () => {
+    const items = search
+      ? generations.filter(
+          (g) =>
+            g.moduleName.toLowerCase().includes(search.toLowerCase()) ||
+            g.prompt.toLowerCase().includes(search.toLowerCase()) ||
+            g.result.toLowerCase().includes(search.toLowerCase())
+        )
+      : generations;
+
+    if (items.length === 0) {
+      toast.error('No hay registros para exportar');
+      return;
+    }
+
+    const lines = items.map((g) => {
+      const date = new Date(g.createdAt).toLocaleString('es-CO');
+      const divider = '═'.repeat(60);
+      return `${divider}\n📋 Módulo: ${g.moduleName}\n📅 Fecha: ${date}\n💬 Prompt:\n${g.prompt}\n\n📄 Resultado:\n${g.result}`;
+    });
+
+    const text = `HISTORIAL SISCOMURA.ia\nExportado: ${new Date().toLocaleString('es-CO')}\nTotal: ${items.length} registros\n\n${lines.join('\n\n')}`;
+
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `siscomura-historial-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${items.length} registros exportados`);
+  };
+
   const handleCopy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -113,14 +168,134 @@ export function HistoryPanel() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <History className="w-6 h-6 text-emerald-600" />
-          Historial de Generaciones
-        </h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          Consulta y reutiliza contenido generado anteriormente.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <History className="w-6 h-6 text-emerald-600" />
+            Historial de Generaciones
+          </h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Consulta, exporta y administra contenido generado.
+          </p>
+        </div>
+
+        {/* Bulk actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <MoreVertical className="w-4 h-4" />
+              Administrar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleExport}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar historial (.txt)
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-amber-600">
+                  <Clock className="w-4 h-4 mr-2" />
+                  Eliminar anteriores a 30 días
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar registros antiguos?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se eliminarán todos los registros generados hace más de 30 días. Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleBulkDelete('/api/generations?olderThan=30', 'Anteriores a 30 días')}
+                    className="bg-amber-600 text-white hover:bg-amber-700"
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-amber-600">
+                  <Clock className="w-4 h-4 mr-2" />
+                  Eliminar anteriores a 60 días
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar registros antiguos?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se eliminarán todos los registros generados hace más de 60 días. Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleBulkDelete('/api/generations?olderThan=60', 'Anteriores a 60 días')}
+                    className="bg-amber-600 text-white hover:bg-amber-700"
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-amber-600">
+                  <Clock className="w-4 h-4 mr-2" />
+                  Eliminar anteriores a 90 días
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar registros antiguos?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se eliminarán todos los registros generados hace más de 90 días. Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleBulkDelete('/api/generations?olderThan=90', 'Anteriores a 90 días')}
+                    className="bg-amber-600 text-white hover:bg-amber-700"
+                  >
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <DropdownMenuSeparator />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar TODO el historial
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar todo el historial?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se eliminarán TODOS los registros de generaciones permanentemente. Esta acción no se puede deshacer. Considera exportar antes de eliminar.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleBulkDelete('/api/generations?all=true', 'Todo el historial')}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Sí, eliminar todo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Filters */}
@@ -256,7 +431,7 @@ export function HistoryPanel() {
                   })()}
                   {selectedItem.moduleName}
                   <span className="text-xs text-muted-foreground font-normal ml-2">
-                    {selectedItem && new Date(selectedItem.createdAt).toLocaleString('es-CO')}
+                    {new Date(selectedItem.createdAt).toLocaleString('es-CO')}
                   </span>
                 </>
               )}

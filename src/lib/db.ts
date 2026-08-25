@@ -396,4 +396,10 @@ export const db = {
       }));
     },
   },
+
+  /* --------- Raw SQL (for bulk ops) --------------------------- */
+  async _raw(args: { sql: string; args?: unknown[] }) {
+    await ensureTables();
+    return getClient().execute(args);
+  },
 };
