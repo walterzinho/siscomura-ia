@@ -127,19 +127,24 @@ export function HistoryPanel() {
       return;
     }
 
-    const lines = items.map((g) => {
+    const lines = items.map((g, i) => {
       const date = new Date(g.createdAt).toLocaleString('es-CO');
-      const divider = '═'.repeat(60);
-      return `${divider}\n📋 Módulo: ${g.moduleName}\n📅 Fecha: ${date}\n💬 Prompt:\n${g.prompt}\n\n📄 Resultado:\n${g.result}`;
+      return `## ${i + 1}. ${g.moduleName}
+
+**Fecha:** ${date}  
+
+### Prompt
+\n${g.prompt}\n\n### Resultado\n\n${g.result}`;
     });
 
-    const text = `HISTORIAL SISCOMURA.ia\nExportado: ${new Date().toLocaleString('es-CO')}\nTotal: ${items.length} registros\n\n${lines.join('\n\n')}`;
+    const text = `# Historial Siscomura.ia\n\n**Exportado:** ${new Date().toLocaleString('es-CO')}  
+**Total:** ${items.length} registros\n\n---\n\n${lines.join('\n\n---\n\n')}`;
 
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `siscomura-historial-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `siscomura-historial-${new Date().toISOString().slice(0, 10)}.md`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${items.length} registros exportados`);
@@ -190,7 +195,7 @@ export function HistoryPanel() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar historial (.txt)
+              Exportar historial (.md)
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <AlertDialog>
@@ -408,6 +413,35 @@ export function HistoryPanel() {
                       >
                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar este registro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Se eliminará "{gen.moduleName}" del historial permanentemente.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(gen.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </CardContent>
