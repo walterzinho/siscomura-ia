@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callGemini, callGeminiWithUrl } from '@/lib/gemini';
 import { getModuleById } from '@/lib/modules';
 import { db } from '@/lib/db';
+import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
+import { validateOrThrow, ValidationError, generateSchema } from '@/lib/validations';
+import { wrapUserPrompt } from '@/lib/prompt-sanitizer';
 
 async function fetchUrlContent(url: string): Promise<string> {
   try {
@@ -31,14 +34,8 @@ async function fetchUrlContent(url: string): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { moduleId, prompt, urls } = body;
-
-    if (!moduleId || !prompt) {
-      return NextResponse.json(
-        { error: 'Se requiere moduleId y prompt' },
-        { status: 400 },
-      );
-    }
+    const { moduleId, prompt, urls } = validateOrThrow(generateSchema, body);
+    await checkRateLimit('generate');
 
     const moduleDef = getModuleById(moduleId);
     if (!moduleDef) {
@@ -63,7 +60,7 @@ export async function POST(request: NextRequest) {
         })
         .join('\n\n');
 
-      const fullPrompt = `${prompt}\n\n${urlSections}`;
+      const fullPrompt = `${wrapUserPrompt(prompt)}\n\n${urlSections}`;
       const response = await callGemini(moduleId, fullPrompt);
       result = response.text;
       apiKeyId = response.apiKeyId;
@@ -74,14 +71,14 @@ export async function POST(request: NextRequest) {
       const urlPrompts = urlList.map(
         (url: string, i: number) => `Noticia ${i + 1} - URL: ${url}`,
       );
-      const fullPrompt = `${prompt}\n\n${urlPrompts.join('\n')}`;
+      const fullPrompt = `${wrapUserPrompt(prompt)}\n\n${urlPrompts.join('\n')}`;
       const response = await callGemini(moduleId, fullPrompt);
       result = response.text;
       apiKeyId = response.apiKeyId;
       metadata = { urls: urlList };
 
     } else {
-      const response = await callGemini(moduleId, prompt);
+      const response = await callGemini(moduleId, wrapUserPrompt(prompt));
       result = response.text;
       apiKeyId = response.apiKeyId;
     }
@@ -99,6 +96,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ result });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: message }, { status: 500 });
   }

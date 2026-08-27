@@ -2,12 +2,39 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // "standalone" se usa solo para despliegues con Docker/Bun.
-  // Vercel maneja su propio formato de build, así que se omite.
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   reactStrictMode: false,
+  typescript: {
+    ignoreBuildErrors: true, // TODO: Fase 1h - resolver errores TS y cambiar a false
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

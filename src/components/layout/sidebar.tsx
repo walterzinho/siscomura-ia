@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { UserButton } from '@clerk/nextjs';
 import {
   Radio,
   Megaphone,
@@ -208,10 +209,11 @@ export function Sidebar() {
         </ScrollArea>
 
         {sidebarOpen && (
-          <div className="p-3 border-t border-border">
-            <Badge variant="outline" className="text-[10px] w-full justify-center">
-              Siscomura.ia · Gemini AI · v1.0
+          <div className="p-3 border-t border-border flex items-center justify-between">
+            <Badge variant="outline" className="text-[10px]">
+              Siscomura.ia v1.0
             </Badge>
+            <UserButton afterSignOutUrl="/sign-in" />
           </div>
         )}
       </aside>

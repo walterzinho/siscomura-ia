@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callGemini, loadPromptFile } from '@/lib/gemini';
 import { db } from '@/lib/db';
 import { getModuleById } from '@/lib/modules';
+import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
+import { validateOrThrow, ValidationError, generateCampaignSchema } from '@/lib/validations';
+import { wrapUserPrompt } from '@/lib/prompt-sanitizer';
 
 const PHOTO_STYLES: Record<string, string> = {
   cinematic: 'Realistic, highly detailed, cinematic lighting, shallow depth of field, 50mm lens effect, professional composition, 2K.',
@@ -30,11 +33,8 @@ export async function POST(req: NextRequest) {
       enfoque = 'consejo', fbLength = 'medio',
       photoStyle = 'cinematic',
       footer = '', hashtags = '',
-    } = body;
-
-    if (!characterName || !characterDesc) {
-      return NextResponse.json({ error: 'Se requiere nombre y descripción del personaje' }, { status: 400 });
-    }
+    } = validateOrThrow(generateCampaignSchema, body);
+    await checkRateLimit('generate');
 
     const systemPrompt = await loadPromptFile('contenido-personajes');
 
@@ -63,7 +63,7 @@ Extensión del copy de Facebook: ${lengthMap[fbLength] || lengthMap.medio}
 
 Genera exactamente ${numMessages} propuestas con los 7 campos especificados.`;
 
-    const response = await callGemini('contenido-personajes', userPrompt, systemPrompt);
+    const response = await callGemini('contenido-personajes', wrapUserPrompt(userPrompt), systemPrompt);
     const parsed = parseGeminiJson(response.text);
     if (!parsed || !parsed.ideas) {
       return NextResponse.json({ error: 'No se pudo interpretar la respuesta', raw: response.text }, { status: 500 });
@@ -93,6 +93,15 @@ Genera exactamente ${numMessages} propuestas con los 7 campos especificados.`;
 
     return NextResponse.json({ success: true, ideas });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: message }, { status: 500 });
   }

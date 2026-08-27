@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callGemini, loadPromptFile } from '@/lib/gemini';
 import { db } from '@/lib/db';
 import { getModuleById } from '@/lib/modules';
+import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
+import { validateOrThrow, ValidationError, generatePhrasesSchema } from '@/lib/validations';
+import { wrapUserPrompt } from '@/lib/prompt-sanitizer';
 
 const TONE_PROMPTS: Record<string, string> = {
   motivacional: 'Frases que inspiran y motivan al campesino, conectadas a la tierra, la siembra y la fe.',
@@ -29,14 +32,11 @@ export async function POST(req: NextRequest) {
       tones = ['contundente'],
       topics = '',
       character = '',
-    } = body;
+    } = validateOrThrow(generatePhrasesSchema, body);
+    await checkRateLimit('generate');
 
     const validTones = Array.isArray(tones) ? tones.filter((t: string) => TONE_PROMPTS[t]) : [TONE_PROMPTS[tones] ? tones : 'contundente'];
     if (validTones.length === 0) validTones.push('contundente');
-
-    if (quantity < 1 || quantity > 50) {
-      return NextResponse.json({ error: 'La cantidad debe ser entre 1 y 50' }, { status: 400 });
-    }
 
     const topicList = typeof topics === 'string'
       ? topics.split(',').map((t: string) => t.trim()).filter(Boolean)
@@ -105,7 +105,7 @@ Recuerda: máx 280 caracteres por frase, autocontenidas, con gancho para compart
 
 Responde ÚNICAMENTE con JSON: {"frases": [{"frase": "...", "tema": "...", "tono": "..."}]}`;
 
-    const response = await callGemini('contenido-personajes', userPrompt, fullSystem);
+    const response = await callGemini('contenido-personajes', wrapUserPrompt(userPrompt), fullSystem);
     const parsed = parseGeminiJson(response.text);
     if (!parsed || !parsed.frases) {
       return NextResponse.json({ error: 'No se pudo interpretar la respuesta', raw: response.text }, { status: 500 });
@@ -131,6 +131,15 @@ Responde ÚNICAMENTE con JSON: {"frases": [{"frase": "...", "tema": "...", "tono
 
     return NextResponse.json({ success: true, frases });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: message }, { status: 500 });
   }

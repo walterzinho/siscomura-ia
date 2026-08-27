@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callGemini } from '@/lib/gemini';
 import { db } from '@/lib/db';
 import { getModuleById } from '@/lib/modules';
+import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
+import { validateOrThrow, ValidationError, generateProfileSchema } from '@/lib/validations';
+import { wrapUserPrompt } from '@/lib/prompt-sanitizer';
 
 function buildProfilePrompt(data: Record<string, string>): string {
   return `Genera una configuración completa de perfil de voz con estos datos del locutor/a:
@@ -39,7 +42,8 @@ function parseGeminiJson(text: string): Record<string, unknown> | null {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, age, gender, profileType, region, scenario, additional } = body;
+    const { name, age, gender, profileType, region, scenario, additional } = validateOrThrow(generateProfileSchema, body);
+    await checkRateLimit('generate');
 
     if (!name && !profileType && !scenario) {
       return NextResponse.json(
@@ -50,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     const prompt = buildProfilePrompt({ name, age, gender, profileType, region, scenario, additional });
 
-    const response = await callGemini('perfiles-locutores-ia', prompt);
+    const response = await callGemini('perfiles-locutores-ia', wrapUserPrompt(prompt));
     const text = response.text;
 
     const parsed = parseGeminiJson(text);
@@ -93,6 +97,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, profile: profileEs, profileEn });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: message }, { status: 500 });
   }

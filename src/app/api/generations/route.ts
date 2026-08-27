@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
+import { validateOrThrow, ValidationError, deleteGenerationSchema } from '@/lib/validations';
 
 export async function GET(request: NextRequest) {
   try {
+    await checkRateLimit('write');
     const { searchParams } = new URL(request.url);
     const moduleId = searchParams.get('moduleId');
     const limit = parseInt(searchParams.get('limit') || '50', 10);
@@ -15,12 +18,22 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(generations);
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ error: 'Error al obtener historial' }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
+    await checkRateLimit('admin');
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const olderThanDays = searchParams.get('olderThan');
@@ -50,10 +63,20 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Se requiere ID, olderThan o all' }, { status: 400 });
     }
 
+    validateOrThrow(deleteGenerationSchema, { id });
     await db.generation.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const msg = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: 'Error al eliminar', detail: msg }, { status: 500 });
   }

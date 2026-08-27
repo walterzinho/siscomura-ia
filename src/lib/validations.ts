@@ -1,0 +1,122 @@
+import { z } from 'zod';
+
+/* ------------------------------------------------------------------
+   Zod schemas for API route input validation.
+   Each route should import and .parse() its corresponding schema.
+   ------------------------------------------------------------------ */
+
+// ── API Keys ──
+export const createApiKeySchema = z.object({
+  name: z.string().min(1, 'Se requiere nombre').max(100),
+  key: z.string().min(10, 'API Key muy corta').max(200),
+  model: z.string().optional().default('gemini-3.6-flash'),
+});
+
+export const updateApiKeySchema = z.object({
+  id: z.string().min(1, 'Se requiere ID'),
+  name: z.string().min(1).max(100).optional(),
+  key: z.string().min(10).max(200).optional(),
+  model: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+// ── Generate (generic) ──
+export const generateSchema = z.object({
+  moduleId: z.string().min(1, 'Se requiere moduleId'),
+  prompt: z.string().min(1, 'Se requiere prompt').max(10000),
+  urls: z.array(z.string().url('URL invalida')).max(10).optional(),
+});
+
+// ── Generate Phrases ──
+export const VALID_TONES = [
+  'motivacional', 'humoristico', 'reflexivo',
+  'provocativo', 'informativo', 'contundente',
+] as const;
+
+export const generatePhrasesSchema = z.object({
+  quantity: z.number().int().min(1).max(50).default(10),
+  tones: z.array(z.enum(VALID_TONES)).min(1).default(['contundente']),
+  topics: z.string().max(1000).default(''),
+  character: z.string().max(500).default(''),
+});
+
+// ── Generate Campaign ──
+export const VALID_ENFOQUE = ['consejo', 'tecnico', 'tutorial'] as const;
+export const VALID_FB_LENGTH = ['corto', 'medio', 'largo'] as const;
+export const VALID_PHOTO_STYLE = [
+  'cinematic', 'smartphone', 'analog', 'watercolor', 'oil', 'macro',
+] as const;
+
+export const generateCampaignSchema = z.object({
+  characterName: z.string().min(1, 'Se requiere nombre del personaje').max(200),
+  characterDesc: z.string().min(1, 'Se requiere descripcion del personaje').max(2000),
+  numMessages: z.number().int().min(1).max(20).default(8),
+  topics: z.string().max(1000).default(''),
+  enfoque: z.enum(VALID_ENFOQUE).default('consejo'),
+  fbLength: z.enum(VALID_FB_LENGTH).default('medio'),
+  photoStyle: z.enum(VALID_PHOTO_STYLE).default('cinematic'),
+  footer: z.string().max(300).default(''),
+  hashtags: z.string().max(300).default(''),
+});
+
+// ── Generate Profile ──
+export const generateProfileSchema = z.object({
+  name: z.string().max(200).default(''),
+  age: z.string().max(50).default(''),
+  gender: z.string().max(50).default(''),
+  profileType: z.string().max(100).default(''),
+  region: z.string().max(100).default(''),
+  scenario: z.string().max(1000).default(''),
+  additional: z.string().max(2000).default(''),
+});
+
+// ── Prompt Editor ──
+export const updatePromptSchema = z.object({
+  moduleId: z.string().min(1, 'Se requiere moduleId').max(100),
+  content: z.string().max(50000),
+});
+
+// ── Station Config ──
+export const updateStationSchema = z.object({
+  nombre: z.string().max(200).optional(),
+  url: z.string().url('URL invalida').optional().or(z.literal('')),
+  email: z.string().email('Email invalido').optional().or(z.literal('')),
+  whatsapp: z.string().max(50).optional(),
+  facebook: z.string().max(200).optional(),
+  tiktok: z.string().max(200).optional(),
+  youtube: z.string().max(200).optional(),
+  instagram: z.string().max(200).optional(),
+  urlApp: z.string().max(200).optional(),
+});
+
+// ── Fetch URL ──
+export const fetchUrlSchema = z.object({
+  url: z.string().url('Se requiere una URL valida (http/https)'),
+});
+
+// ── Generations ──
+export const deleteGenerationSchema = z.object({
+  id: z.string().min(1, 'Se requiere ID'),
+});
+
+/**
+ * Helper to validate and return parsed data, or throw a 400 Response.
+ */
+export function validateOrThrow<T>(schema: z.ZodSchema<T>, body: unknown): T {
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    const firstError = result.error.issues[0];
+    const message = firstError
+      ? `${firstError.path.join('.')}: ${firstError.message}`
+      : 'Datos invalidos';
+    throw new ValidationError(message);
+  }
+  return result.data;
+}
+
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}

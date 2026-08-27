@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
+import { validateOrThrow, ValidationError, createApiKeySchema, updateApiKeySchema } from '@/lib/validations';
 
 export async function GET() {
   try {
+    await checkRateLimit('write');
     const keys = await db.apiKey.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -18,6 +21,15 @@ export async function GET() {
     }));
     return NextResponse.json(safeKeys);
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const msg = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: 'Error al obtener API Keys', detail: msg }, { status: 500 });
   }
@@ -26,14 +38,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, key, model } = body;
-
-    if (!name || !key) {
-      return NextResponse.json(
-        { error: 'Se requiere nombre y API Key' },
-        { status: 400 }
-      );
-    }
+    const { name, key, model } = validateOrThrow(createApiKeySchema, body);
+    await checkRateLimit('admin');
 
     const apiKey = await db.apiKey.create({
       data: {
@@ -50,6 +56,15 @@ export async function POST(request: NextRequest) {
       isActive: apiKey.isActive,
     });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const msg = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: 'Error al crear API Key', detail: msg }, { status: 500 });
   }
@@ -58,11 +73,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, key, model, isActive } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: 'Se requiere ID' }, { status: 400 });
-    }
+    const { id, name, key, model, isActive } = validateOrThrow(updateApiKeySchema, body);
+    await checkRateLimit('admin');
 
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name;
@@ -74,6 +86,15 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const msg = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: 'Error al actualizar API Key', detail: msg }, { status: 500 });
   }
@@ -81,6 +102,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    await checkRateLimit('admin');
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -92,6 +114,15 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const msg = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: 'Error al eliminar API Key', detail: msg }, { status: 500 });
   }

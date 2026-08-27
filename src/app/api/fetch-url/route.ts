@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
+import { validateOrThrow, ValidationError, fetchUrlSchema } from '@/lib/validations';
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
-
-    if (!url || typeof url !== 'string' || !url.startsWith('http')) {
-      return NextResponse.json(
-        { error: 'Se requiere una URL valida (http/https)' },
-        { status: 400 },
-      );
-    }
+    const body = await request.json();
+    const { url } = validateOrThrow(fetchUrlSchema, body);
+    await checkRateLimit('generate');
 
     const res = await fetch(url, {
       headers: {
@@ -53,8 +50,17 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ title, text });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error desconocido';
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) }
+      });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    const message = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

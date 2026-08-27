@@ -1,6 +1,7 @@
 import { createClient, type Client } from '@libsql/client';
 import { readFile, readdir } from 'fs/promises';
 import { join } from 'path';
+import { encrypt, decrypt } from '@/lib/crypto';
 
 /* ------------------------------------------------------------------
    Lightweight libsql wrapper — replaces Prisma on Vercel.
@@ -153,7 +154,7 @@ export const db = {
       return r.rows.map((row) => ({
         id: row.id as string,
         name: row.name as string,
-        key: row.key as string,
+        key: decrypt(row.key as string),
         model: row.model as string,
         isActive: toBool(row.isActive as number),
         usageCount: Number(row.usageCount),
@@ -173,7 +174,7 @@ export const db = {
         args: [
           id,
           args.data.name,
-          args.data.key,
+          encrypt(String(args.data.key)),
           (args.data.model as string) || 'gemini-3.6-flash',
           args.data.isActive !== undefined ? fromBool(args.data.isActive as boolean) : 1,
           now,
@@ -202,6 +203,10 @@ export const db = {
         if (k === 'usageCount' && typeof v === 'object' && v !== null && 'increment' in v) {
           sets.push(`usageCount = usageCount + ?`);
           params.push((v as { increment: number }).increment);
+        } else if (k === 'key') {
+          // Encrypt API keys before storing
+          sets.push(`${k} = ?`);
+          params.push(encrypt(String(v)));
         } else if (v === true || v === false) {
           sets.push(`${k} = ?`);
           params.push(fromBool(v as boolean));
