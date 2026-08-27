@@ -479,7 +479,7 @@ export function ContenidoPersonajesGenerator() {
                                 <div><span className="font-bold text-muted-foreground">Pose:</span> <span className="font-mono">{idea.accion}</span></div>
                                 <div><span className="font-bold text-muted-foreground">Fondo:</span> <span className="font-mono">{idea.entorno}</span></div>
                               </div>
-                              <Button variant="outline" size="sm" onClick={() => copyText(idea.prompt_flow || '', `flow-${idx}`)} className="w-full text-xs gap-1">
+                              <Button variant="outline" size="sm" onClick={() => copyText(idea.prompt_flow || '')} className="w-full text-xs gap-1">
                                 <Camera className="size-3" /> Copiar Prompt
                               </Button>
                             </div>

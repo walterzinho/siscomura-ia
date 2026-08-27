@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Radio } from 'lucide-react';
+import { Radio, Loader2 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
@@ -128,7 +128,7 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex items-center gap-3">
-          <Radio className="w-6 h-6 animate-pulse text-emerald-500" />
+          <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
           <span className="text-muted-foreground">Cargando...</span>
         </div>
       </div>
@@ -284,5 +284,19 @@ export default function LoginPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -25,9 +25,9 @@ const TIPO_OPTIONS = [
 ];
 
 const CLASE_CUÑA_OPTIONS = [
-  { value: 'producto', label: 'Para Producto' },
-  { value: 'servicio', label: 'Para Servicio' },
-  { value: 'campaña-institucional-cliente', label: 'Campaña Institucional del Cliente' },
+  { value: 'producto', label: 'Para Producto', desc: '' },
+  { value: 'servicio', label: 'Para Servicio', desc: '' },
+  { value: 'campaña-institucional-cliente', label: 'Campaña Institucional del Cliente', desc: '' },
 ];
 
 const CLASE_INFOMERCIAL_OPTIONS = [

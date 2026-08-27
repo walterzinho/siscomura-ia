@@ -38,12 +38,7 @@ export async function POST(req: NextRequest) {
     const validTones = Array.isArray(tones) ? tones.filter((t: string) => TONE_PROMPTS[t]) : [TONE_PROMPTS[tones] ? tones : 'contundente'];
     if (validTones.length === 0) validTones.push('contundente');
 
-    const topicList = typeof topics === 'string'
-      ? topics.split(',').map((t: string) => t.trim()).filter(Boolean)
-      : Array.isArray(topics)
-        ? topics.map((t: string) => String(t).trim()).filter(Boolean)
-        : [];
-
+    const topicList = topics.split(',').map((t: string) => t.trim()).filter(Boolean);
     // Build distribution plan
     const perTone = Math.floor(quantity / validTones.length);
     const remainder = quantity % validTones.length;

@@ -65,8 +65,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const profileEs = parsed.profileEs || parsed;
-    const profileEn = parsed.profileEn || null;
+    const profileEs = (parsed.profileEs || parsed) as Record<string, unknown>;
+    const profileEn = (parsed.profileEn || null) as Record<string, unknown> | null;
 
     // Save generation to history
     const moduleDef = getModuleById('perfiles-locutores-ia');
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       `Scene: ${profileEs.scene}`,
       `Sample Context: ${profileEs.sampleContext}`,
       `Tag: ${profileEs.tag}`,
-      `Tags sugeridos: ${(profileEs.suggestedTags || []).join(', ')}`,
+      `Tags sugeridos: ${((profileEs.suggestedTags as string[]) || []).join(', ')}`,
     ].join('\n');
 
     await db.generation.create({

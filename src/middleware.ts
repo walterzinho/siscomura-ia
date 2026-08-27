@@ -1,14 +1,14 @@
-import { auth } from '@/lib/auth';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Public routes that don't require authentication.
+ * Lightweight auth middleware.
+ * Instead of importing auth() (which pulls in Node.js-only deps),
+ * we check for the Auth.js session cookie directly.
+ * Actual session validation happens server-side in API routes and pages.
  */
+
 const PUBLIC_PATHS = ['/login', '/api/auth'];
 
-/**
- * API routes that require authentication.
- */
 const PROTECTED_API_PREFIXES = [
   '/api/generate',
   '/api/generate-phrases',
@@ -21,10 +21,10 @@ const PROTECTED_API_PREFIXES = [
   '/api/fetch-url',
 ];
 
-export default auth((req) => {
+export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow public paths
+  // Allow public paths (login page + auth API routes)
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
@@ -34,13 +34,19 @@ export default auth((req) => {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname === '/robots.txt' ||
-    pathname.match(/\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)$$/)
+    pathname.match(/\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)$/)
   ) {
     return NextResponse.next();
   }
 
-  // Check if authenticated
-  const isAuthenticated = !!req.auth;
+  // Check for Auth.js session cookie
+  const sessionCookie =
+    req.cookies.get('authjs.session-token') ||
+    req.cookies.get('__Secure-authjs.session-token') ||
+    req.cookies.get('next-auth.session-token') ||
+    req.cookies.get('__Secure-next-auth.session-token');
+
+  const isAuthenticated = !!sessionCookie?.value;
 
   // Protect API routes
   if (pathname.startsWith('/api')) {
@@ -61,13 +67,11 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and static files
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
     '/(api|trpc)(.*)',
   ],
 };
