@@ -30,29 +30,25 @@ interface PhraseItem {
 }
 
 interface Character {
-  name: string; description: string; img1: string; img2: string; img3: string;
+  name: string; description: string;
 }
 
 const DEFAULT_CHARACTERS: Record<string, Character> = {
   evaristo: {
     name: 'Don Evaristo',
     description: 'Campesino de 70 años del altiplano cundiboyacense, manos grandes y venosas, barba rala canosa, 1.60m, tez morena, expresión sabia y serena. Sombrero de Aguadas, camisa a cuadros tonos tierra, pantalón de trabajo, botas de caucho.',
-    img1: '', img2: '', img3: '',
   },
   justina: {
     name: 'Mamá Justina',
     description: 'Abuela dulce de 68 años de las montañas colombianas, rostro amable, ojos expresivos, cabello plateado en moño tradicional, estatura baja, tez trigueña clara. Delantal bordado colorido sobre vestido floreado modesto, aretes de oro pequeños.',
-    img1: '', img2: '', img3: '',
   },
   camilo_jenny: {
     name: 'Camilo y Jenny',
     description: 'Jóvenes tech-campesinos de 22 años, expresiones energéticas, sonrisas amigables. Camilo con piel tostada y gorra béisbol; Jenny con cabello oscuro largo trenzado y sombrero de paja tejido.',
-    img1: '', img2: '', img3: '',
   },
   ernesto_juli: {
     name: 'Ernesto y Juli',
     description: 'Pareja urbano-rural consciente de 32 años, intelectualmente curiosos. Ernesto con barba de tres días; Juli con expresión cálida. Ropa moderna cómoda con detalles tradicionales colombianos sutiles.',
-    img1: '', img2: '', img3: '',
   },
 };
 
@@ -85,9 +81,7 @@ export function ContenidoPersonajesGenerator() {
   const [selectedCharKey, setSelectedCharKey] = useState('evaristo');
   const [charName, setCharName] = useState('');
   const [charDesc, setCharDesc] = useState('');
-  const [charImg1, setCharImg1] = useState('');
-  const [charImg2, setCharImg2] = useState('');
-  const [charImg3, setCharImg3] = useState('');
+
 
   // ===== CAMPAIGN STATE =====
   const [campaignIdeas, setCampaignIdeas] = useState<CampaignIdea[]>([]);
@@ -126,9 +120,7 @@ export function ContenidoPersonajesGenerator() {
     if (c) {
       setCharName(c.name);
       setCharDesc(c.description);
-      setCharImg1(c.img1 || '');
-      setCharImg2(c.img2 || '');
-      setCharImg3(c.img3 || '');
+
     }
   }, [selectedCharKey, characters]);
 
@@ -138,7 +130,7 @@ export function ContenidoPersonajesGenerator() {
     if (!charName.trim()) { toast.error('Ponle un nombre al personaje'); return; }
     const updated = {
       ...characters,
-      [selectedCharKey]: { name: charName.trim(), description: charDesc, img1: charImg1, img2: charImg2, img3: charImg3 },
+      [selectedCharKey]: { name: charName.trim(), description: charDesc },
     };
     setCharacters(updated);
     localStorage.setItem('smc_characters_db', JSON.stringify(updated));
@@ -147,7 +139,7 @@ export function ContenidoPersonajesGenerator() {
 
   const newCharacter = () => {
     const id = `char_${Date.now()}`;
-    const updated = { ...characters, [id]: { name: 'Nuevo Personaje', description: '', img1: '', img2: '', img3: '' } };
+    const updated = { ...characters, [id]: { name: 'Nuevo Personaje', description: '' } };
     setCharacters(updated);
     localStorage.setItem('smc_characters_db', JSON.stringify(updated));
     setSelectedCharKey(id);
@@ -178,7 +170,7 @@ export function ContenidoPersonajesGenerator() {
         body: JSON.stringify({
           characterName: charName, characterDesc: charDesc,
           numMessages, topics, enfoque, fbLength, photoStyle,
-          imgRefs: [charImg1, charImg2, charImg3], footer, hashtags,
+          footer, hashtags,
         }),
       });
       const data = await res.json();
@@ -191,7 +183,7 @@ export function ContenidoPersonajesGenerator() {
       }
     } catch { toast.error('Error de conexión'); }
     finally { setGenerating(false); }
-  }, [charName, charDesc, numMessages, topics, enfoque, fbLength, photoStyle, charImg1, charImg2, charImg3, footer, hashtags, setGenerating]);
+  }, [charName, charDesc, numMessages, topics, enfoque, fbLength, photoStyle, footer, hashtags, setGenerating]);
 
   // ===== GENERATE PHRASES =====
   const handleGeneratePhrases = useCallback(async () => {
@@ -199,7 +191,7 @@ export function ContenidoPersonajesGenerator() {
     try {
       const res = await fetch('/api/generate-phrases', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity: phraseCount, tone: phraseTone, topic: phraseTopic, character: phraseCharacter }),
+        body: JSON.stringify({ quantity: phraseCount, tone: phraseTone, topic: phraseTopic, character: phraseCharacter === '__none__' ? '' : phraseCharacter }),
       });
       const data = await res.json();
       if (data.success) {
@@ -316,12 +308,7 @@ export function ContenidoPersonajesGenerator() {
                     <Textarea value={charDesc} onChange={e => setCharDesc(e.target.value)} rows={4} className="resize-none text-xs" placeholder="Describe al personaje en detalle..." />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Imágenes de Referencia (Google Flow)</Label>
-                    <Input value={charImg1} onChange={e => setCharImg1(e.target.value)} placeholder="URL imagen 1" className="text-xs" />
-                    <Input value={charImg2} onChange={e => setCharImg2(e.target.value)} placeholder="URL imagen 2 (opcional)" className="text-xs" />
-                    <Input value={charImg3} onChange={e => setCharImg3(e.target.value)} placeholder="URL imagen 3 (opcional)" className="text-xs" />
-                  </div>
+
 
                   <Button onClick={saveCharacter} variant="outline" className="w-full text-xs">Guardar Personaje</Button>
                 </CardContent>
@@ -557,7 +544,7 @@ export function ContenidoPersonajesGenerator() {
                   <Select value={phraseCharacter} onValueChange={setPhraseCharacter}>
                     <SelectTrigger className="text-xs"><SelectValue placeholder="Sin personaje" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin personaje</SelectItem>
+                      <SelectItem value="__none__">Sin personaje</SelectItem>
                       {Object.values(characters).map((c, i) => (
                         <SelectItem key={i} value={c.name}>{c.name}</SelectItem>
                       ))}

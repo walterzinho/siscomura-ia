@@ -29,7 +29,6 @@ export async function POST(req: NextRequest) {
       numMessages = 8, topics = '',
       enfoque = 'consejo', fbLength = 'medio',
       photoStyle = 'cinematic',
-      imgRefs = [],
       footer = '', hashtags = '',
     } = body;
 
@@ -71,18 +70,12 @@ Genera exactamente ${numMessages} propuestas con los 7 campos especificados.`;
     }
 
     const styleDirective = PHOTO_STYLES[photoStyle] || PHOTO_STYLES.cinematic;
-    const validImages = imgRefs.filter((u: string) => u.trim());
-    const imgPrefix = validImages.length === 1
-      ? `Using this character reference image ${validImages[0]} `
-      : validImages.length > 1
-        ? `Using these character reference images ${validImages.join(', ')} `
-        : '';
 
     const ideas = (parsed.ideas as Array<Record<string, string>>).map((idea) => {
       let copy = idea.copy_facebook || '';
       if (footer) copy += `\n\n${footer}`;
       if (hashtags) copy += `\n${hashtags}`;
-      const promptFlow = `${imgPrefix}based on character description: ${characterDesc}. Act as this character. The character is ${idea.accion || ''}. Setting: ${idea.entorno || ''}. ${styleDirective}`;
+      const promptFlow = `based on character description: ${characterDesc}. Act as this character. The character is ${idea.accion || ''}. Setting: ${idea.entorno || ''}. ${styleDirective}`;
       return { ...idea, copy_facebook: copy, prompt_flow: promptFlow };
     });
 
