@@ -17,6 +17,17 @@ interface GeminiResponse {
 const PROMPTS_DIR = join(process.cwd(), 'prompts');
 
 export async function loadPromptFile(moduleId: string): Promise<string> {
+  // 1. Try database first (works on Vercel read-only fs)
+  try {
+    const { db } = await import('@/lib/db');
+    await db.prompt.seedFromFilesystem();
+    const row = await db.prompt.findFirst({ where: { moduleId } });
+    if (row?.content) return row.content;
+  } catch {
+    // DB not available yet — fall through
+  }
+
+  // 2. Fallback to filesystem (works in local dev)
   try {
     const content = await readFile(join(PROMPTS_DIR, `${moduleId}.md`), 'utf-8');
     return content;

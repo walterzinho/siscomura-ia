@@ -1,4 +1,6 @@
 import { createClient, type Client } from '@libsql/client';
+import { readFile, readdir } from 'fs/promises';
+import { join } from 'path';
 
 /* ------------------------------------------------------------------
    Lightweight libsql wrapper — replaces Prisma on Vercel.
@@ -92,6 +94,13 @@ async function ensureTables() {
       isActive    INTEGER NOT NULL DEFAULT 1,
       createdAt   TEXT NOT NULL DEFAULT (datetime('now')),
       updatedAt   TEXT NOT NULL DEFAULT (datetime('now'))
+    )` },
+    { sql: `CREATE TABLE IF NOT EXISTS Prompt (
+      id        TEXT PRIMARY KEY,
+      moduleId  TEXT NOT NULL UNIQUE,
+      content   TEXT NOT NULL DEFAULT '',
+      createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+      updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
     )` },
   ]);
   _migrated = true;
@@ -394,6 +403,85 @@ export const db = {
         createdAt: new Date(row.createdAt as string),
         updatedAt: new Date(row.updatedAt as string),
       }));
+    },
+  },
+
+  /* --------- Prompt ------------------------------------------- */
+  prompt: {
+    async findMany() {
+      await ensureTables();
+      const r = await getClient().execute('SELECT id, moduleId, content, createdAt, updatedAt FROM Prompt ORDER BY moduleId ASC');
+      return r.rows.map((row) => ({
+        id: row.id as string,
+        moduleId: row.moduleId as string,
+        content: row.content as string,
+        createdAt: new Date(row.createdAt as string),
+        updatedAt: new Date(row.updatedAt as string),
+      }));
+    },
+
+    async findFirst(args: { where: { moduleId: string } }) {
+      await ensureTables();
+      const r = await getClient().execute({
+        sql: 'SELECT id, moduleId, content, createdAt, updatedAt FROM Prompt WHERE moduleId = ?',
+        args: [args.where.moduleId],
+      });
+      if (r.rows.length === 0) return null;
+      const row = r.rows[0];
+      return {
+        id: row.id as string,
+        moduleId: row.moduleId as string,
+        content: row.content as string,
+        createdAt: new Date(row.createdAt as string),
+        updatedAt: new Date(row.updatedAt as string),
+      };
+    },
+
+    async upsert(args: { where: { moduleId: string }; data: { content: string } }) {
+      await ensureTables();
+      const existing = await getClient().execute({
+        sql: 'SELECT id FROM Prompt WHERE moduleId = ?',
+        args: [args.where.moduleId],
+      });
+      if (existing.rows.length > 0) {
+        await getClient().execute({
+          sql: "UPDATE Prompt SET content = ?, updatedAt = datetime('now') WHERE moduleId = ?",
+          args: [args.data.content, args.where.moduleId],
+        });
+      } else {
+        const id = cuid();
+        await getClient().execute({
+          sql: "INSERT INTO Prompt (id, moduleId, content, createdAt, updatedAt) VALUES (?, ?, ?, datetime('now'), datetime('now'))",
+          args: [id, args.where.moduleId, args.data.content],
+        });
+      }
+    },
+
+    /** Seed from .md files if not yet in DB */
+    async seedFromFilesystem() {
+      await ensureTables();
+      const PROMPTS_DIR = join(process.cwd(), 'prompts');
+      try {
+        const files = await readdir(PROMPTS_DIR);
+        const mdFiles = files.filter((f) => f.endsWith('.md'));
+        for (const filename of mdFiles) {
+          const moduleId = filename.replace('.md', '');
+          const exists = await getClient().execute({
+            sql: 'SELECT id FROM Prompt WHERE moduleId = ?',
+            args: [moduleId],
+          });
+          if (exists.rows.length === 0) {
+            const content = await readFile(join(PROMPTS_DIR, filename), 'utf-8');
+            const id = cuid();
+            await getClient().execute({
+              sql: "INSERT INTO Prompt (id, moduleId, content, createdAt, updatedAt) VALUES (?, ?, ?, datetime('now'), datetime('now'))",
+              args: [id, moduleId, content],
+            });
+          }
+        }
+      } catch {
+        // .md dir may not exist at runtime on Vercel — that's fine
+      }
     },
   },
 

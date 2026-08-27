@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile, writeFile, readdir } from 'fs/promises';
-import { join } from 'path';
-
-const PROMPTS_DIR = join(process.cwd(), 'prompts');
+import { db } from '@/lib/db';
 
 export async function GET() {
   try {
-    const files = await readdir(PROMPTS_DIR);
-    const mdFiles = files.filter((f) => f.endsWith('.md'));
-
-    const prompts = await Promise.all(
-      mdFiles.map(async (filename) => {
-        const content = await readFile(join(PROMPTS_DIR, filename), 'utf-8');
-        const moduleId = filename.replace('.md', '');
-        return { moduleId, filename, content };
-      })
-    );
-
+    // Ensure prompts are seeded from .md files (local dev only, no-op on Vercel)
+    await db.prompt.seedFromFilesystem();
+    const prompts = await db.prompt.findMany();
     return NextResponse.json(prompts);
   } catch (error) {
     return NextResponse.json(
@@ -38,10 +27,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const filename = `${moduleId}.md`;
-    const filePath = join(PROMPTS_DIR, filename);
-
-    await writeFile(filePath, content, 'utf-8');
+    await db.prompt.upsert({ where: { moduleId }, data: { content } });
 
     return NextResponse.json({ success: true, moduleId });
   } catch (error) {
