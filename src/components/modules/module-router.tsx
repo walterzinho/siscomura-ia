@@ -13,6 +13,7 @@ import { GeneradorLibretosGenerator } from './generador-libretos';
 import { ContenidoMulticanalGenerator } from './contenido-multicanal';
 import { ConexionTerritorialGenerator } from './conexion-territorial';
 import { PerfilesLocutoresIaGenerator } from './perfiles-locutores-ia';
+import { ContenidoPersonajesGenerator } from './contenido-personajes';
 import { getModuleById } from '@/lib/modules';
 
 interface ModuleRouterProps {
@@ -68,6 +69,10 @@ export function ModuleRouter({ moduleId }: ModuleRouterProps) {
 
   if (moduleId === 'perfiles-locutores-ia') {
     return <PerfilesLocutoresIaGenerator />;
+  }
+
+  if (moduleId === 'contenido-personajes') {
+    return <ContenidoPersonajesGenerator />;
   }
 
   if (moduleDef.hasUrl) {
