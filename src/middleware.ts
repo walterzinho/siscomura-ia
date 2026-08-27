@@ -1,67 +1,71 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 
 /**
- * Route matcher: API routes that require authentication.
- * Public routes (health, test-db) are excluded.
+ * Public routes that don't require authentication.
  */
-const isProtectedApi = createRouteMatcher([
-  '/api/generate(.*)',
-  '/api/generate-phrases(.*)',
-  '/api/generate-campaign(.*)',
-  '/api/generate-profile(.*)',
-  '/api/keys(.*)',
-  '/api/prompts(.*)',
-  '/api/station(.*)',
-  '/api/generations(.*)',
-  '/api/fetch-url(.*)',
-]);
+const PUBLIC_PATHS = ['/login', '/api/auth'];
 
 /**
- * Public routes that anyone can access (even without auth).
+ * API routes that require authentication.
  */
-const isPublicRoute = createRouteMatcher([
-  '/api/health',
-  '/api/test-db',
-]);
+const PROTECTED_API_PREFIXES = [
+  '/api/generate',
+  '/api/generate-phrases',
+  '/api/generate-campaign',
+  '/api/generate-profile',
+  '/api/keys',
+  '/api/prompts',
+  '/api/station',
+  '/api/generations',
+  '/api/fetch-url',
+];
 
-export default clerkMiddleware(async (auth, req) => {
-  const url = req.nextUrl;
+export default auth((req) => {
+  const { pathname } = req.nextUrl;
 
-  // Allow public API routes
-  if (isPublicRoute(req)) {
-    return;
+  // Allow public paths
+  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
   }
+
+  // Allow Next.js internals and static files
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname === '/robots.txt' ||
+    pathname.match(/\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)$$/)
+  ) {
+    return NextResponse.next();
+  }
+
+  // Check if authenticated
+  const isAuthenticated = !!req.auth;
 
   // Protect API routes
-  if (isProtectedApi(req)) {
-    const { userId } = await auth();
-    if (!userId) {
-      const apiRes = new Response(
-        JSON.stringify({ error: 'Autenticacion requerida' }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        },
+  if (pathname.startsWith('/api')) {
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        { error: 'Autenticacion requerida' },
+        { status: 401 }
       );
-      return apiRes;
     }
-    return;
+    return NextResponse.next();
   }
 
-  // Protect all pages (non-API routes)
-  if (!url.pathname.startsWith('/api')) {
-    const { userId } = await auth();
-    if (!userId) {
-      const signInUrl = new URL('/sign-in', url.origin);
-      signInUrl.searchParams.set('redirect_url', url.href);
-      return Response.redirect(signInUrl);
-    }
+  // Protect all pages
+  if (!isAuthenticated) {
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(loginUrl);
   }
+
+  return NextResponse.next();
 });
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
+    // Skip Next.js internals and static files
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',

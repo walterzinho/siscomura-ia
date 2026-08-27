@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { UserButton } from '@clerk/nextjs';
 import {
   Radio,
   Megaphone,
@@ -28,8 +27,11 @@ import {
   Menu,
   Moon,
   Sun as SunIcon,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useSession, signOut } from 'next-auth/react';
 
 const iconMap: Record<string, React.ElementType> = {
   Radio,
@@ -48,6 +50,7 @@ const iconMap: Record<string, React.ElementType> = {
 export function Sidebar() {
   const { currentView, setView, sidebarOpen, toggleSidebar } = useAppStore();
   const { theme, setTheme } = useTheme();
+  const { data: session } = useSession();
 
   const isActive = (type: string, id?: string) => {
     if (currentView.type !== type) return false;
@@ -209,11 +212,29 @@ export function Sidebar() {
         </ScrollArea>
 
         {sidebarOpen && (
-          <div className="p-3 border-t border-border flex items-center justify-between">
-            <Badge variant="outline" className="text-[10px]">
-              Siscomura.ia v1.0
-            </Badge>
-            <UserButton afterSignOutUrl="/sign-in" />
+          <div className="p-3 border-t border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs text-muted-foreground truncate">
+                  {session?.user?.name || session?.user?.email || 'Usuario'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Badge variant="outline" className="text-[10px] mr-1">
+                  v1.0
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => signOut({ callbackUrl: '/login' })}
+                  title="Cerrar sesion"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </aside>

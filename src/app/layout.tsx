@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import { ClerkProvider } from "@clerk/nextjs";
-import { esES } from "@clerk/localizations";
+import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,11 +29,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider localization={esES}>
-      <html lang="es" suppressHydrationWarning>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-        >
+    <html lang="es" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+      >
+        <SessionProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="light"
@@ -43,8 +42,8 @@ export default function RootLayout({
           >
             {children}
           </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+        </SessionProvider>
+      </body>
+    </html>
   );
 }

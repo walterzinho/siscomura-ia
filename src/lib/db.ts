@@ -1,4 +1,4 @@
-import { createClient, type Client } from '@libsql/client';
+import { createClient, type Client, type InValue } from '@libsql/client';
 import { readFile, readdir } from 'fs/promises';
 import { join } from 'path';
 import { encrypt, decrypt } from '@/lib/crypto';
@@ -103,6 +103,15 @@ async function ensureTables() {
       createdAt TEXT NOT NULL DEFAULT (datetime('now')),
       updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
     )` },
+    { sql: `CREATE TABLE IF NOT EXISTS User (
+      id         TEXT PRIMARY KEY,
+      email      TEXT NOT NULL UNIQUE,
+      name       TEXT NOT NULL DEFAULT '',
+      password   TEXT NOT NULL,
+      role       TEXT NOT NULL DEFAULT 'admin',
+      createdAt  TEXT NOT NULL DEFAULT (datetime('now')),
+      updatedAt  TEXT NOT NULL DEFAULT (datetime('now'))
+    )` },
   ]);
   _migrated = true;
 }
@@ -124,7 +133,7 @@ export const db = {
       take?: number;
     }) {
       await ensureTables();
-      const params: unknown[] = [];
+      const params: InValue[] = [];
       const conditions: string[] = [];
 
       if (args?.where) {
@@ -132,7 +141,7 @@ export const db = {
           if (v === true || v === false) {
             params.push(fromBool(v as boolean));
           } else {
-            params.push(v);
+            params.push(v as InValue);
           }
           conditions.push(`${k} = ?`);
         }
@@ -173,13 +182,13 @@ export const db = {
              VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
         args: [
           id,
-          args.data.name,
+          args.data.name as string,
           encrypt(String(args.data.key)),
           (args.data.model as string) || 'gemini-3.6-flash',
           args.data.isActive !== undefined ? fromBool(args.data.isActive as boolean) : 1,
           now,
           now,
-        ],
+        ] as InValue[],
       });
       return {
         id,
@@ -197,7 +206,7 @@ export const db = {
     async update(args: { where: { id: string }; data: Record<string, unknown> }) {
       await ensureTables();
       const sets: string[] = [];
-      const params: unknown[] = [];
+      const params: InValue[] = [];
 
       for (const [k, v] of Object.entries(args.data)) {
         if (k === 'usageCount' && typeof v === 'object' && v !== null && 'increment' in v) {
@@ -215,7 +224,7 @@ export const db = {
           params.push(v.toISOString());
         } else {
           sets.push(`${k} = ?`);
-          params.push(v);
+          params.push(v as InValue);
         }
       }
 
@@ -246,12 +255,12 @@ export const db = {
       select?: Record<string, boolean>;
     }) {
       await ensureTables();
-      const params: unknown[] = [];
+      const params: InValue[] = [];
       const conditions: string[] = [];
 
       if (args?.where) {
         for (const [k, v] of Object.entries(args.where)) {
-          params.push(v);
+          params.push(v as InValue);
           conditions.push(`${k} = ?`);
         }
       }
@@ -290,13 +299,13 @@ export const db = {
              VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
         args: [
           id,
-          args.data.moduleId,
-          args.data.moduleName,
-          args.data.prompt,
-          args.data.result,
-          args.data.metadata ?? null,
-          args.data.apiKeyId ?? null,
-        ],
+          args.data.moduleId as string,
+          args.data.moduleName as string,
+          args.data.prompt as string,
+          args.data.result as string,
+          args.data.metadata as string | null ?? null,
+          args.data.apiKeyId as string | null ?? null,
+        ] as InValue[],
       });
       return { id };
     },
@@ -351,7 +360,7 @@ export const db = {
           (d.youtube as string) || '',
           (d.instagram as string) || '',
           (d.urlApp as string) || '',
-        ],
+        ] as InValue[],
       });
       return {
         id,
@@ -373,12 +382,12 @@ export const db = {
       await ensureTables();
       const fields = ['nombre', 'url', 'email', 'whatsapp', 'facebook', 'tiktok', 'youtube', 'instagram', 'urlApp'];
       const sets: string[] = [];
-      const params: unknown[] = [];
+      const params: InValue[] = [];
 
       for (const f of fields) {
         if (f in args.data) {
           sets.push(`${f} = ?`);
-          params.push(args.data[f] ?? '');
+          params.push((args.data[f] as string | null) ?? '');
         }
       }
 
@@ -490,9 +499,91 @@ export const db = {
     },
   },
 
+  /* --------- User --------------------------------------------- */
+  user: {
+    async findByEmail(email: string) {
+      await ensureTables();
+      const r = await getClient().execute({
+        sql: 'SELECT id, email, name, role, createdAt, updatedAt FROM User WHERE email = ?',
+        args: [email],
+      });
+      if (r.rows.length === 0) return null;
+      const row = r.rows[0];
+      return {
+        id: row.id as string,
+        email: row.email as string,
+        name: row.name as string,
+        role: row.role as string,
+        createdAt: new Date(row.createdAt as string),
+        updatedAt: new Date(row.updatedAt as string),
+      };
+    },
+
+    async findById(id: string) {
+      await ensureTables();
+      const r = await getClient().execute({
+        sql: 'SELECT id, email, name, role, createdAt, updatedAt FROM User WHERE id = ?',
+        args: [id],
+      });
+      if (r.rows.length === 0) return null;
+      const row = r.rows[0];
+      return {
+        id: row.id as string,
+        email: row.email as string,
+        name: row.name as string,
+        role: row.role as string,
+        createdAt: new Date(row.createdAt as string),
+        updatedAt: new Date(row.updatedAt as string),
+      };
+    },
+
+    async findWithPassword(email: string) {
+      await ensureTables();
+      const r = await getClient().execute({
+        sql: 'SELECT id, email, name, password, role, createdAt, updatedAt FROM User WHERE email = ?',
+        args: [email],
+      });
+      if (r.rows.length === 0) return null;
+      const row = r.rows[0];
+      return {
+        id: row.id as string,
+        email: row.email as string,
+        name: row.name as string,
+        password: row.password as string,
+        role: row.role as string,
+        createdAt: new Date(row.createdAt as string),
+        updatedAt: new Date(row.updatedAt as string),
+      };
+    },
+
+    async count() {
+      await ensureTables();
+      const r = await getClient().execute('SELECT COUNT(*) as c FROM User');
+      return Number(r.rows[0].c);
+    },
+
+    async create(args: { data: { email: string; name: string; password: string; role?: string } }) {
+      await ensureTables();
+      const id = cuid();
+      const now = new Date().toISOString();
+      await getClient().execute({
+        sql: 'INSERT INTO User (id, email, name, password, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        args: [id, args.data.email, args.data.name, args.data.password, args.data.role || 'admin', now, now],
+      });
+      return {
+        id,
+        email: args.data.email,
+        name: args.data.name,
+        role: args.data.role || 'admin',
+        createdAt: new Date(now),
+        updatedAt: new Date(now),
+      };
+    },
+  },
+
   /* --------- Raw SQL (for bulk ops) --------------------------- */
-  async _raw(args: { sql: string; args?: unknown[] }) {
+  async _raw(args: { sql: string; args?: InValue[] }) {
     await ensureTables();
-    return getClient().execute(args);
+    return getClient().execute(args as { sql: string; args?: InValue[] });
   },
 };

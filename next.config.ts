@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: false,
   typescript: {
-    ignoreBuildErrors: true, // TODO: Fase 1h - resolver errores TS y cambiar a false
+    ignoreBuildErrors: false,
   },
   async headers() {
     return [
