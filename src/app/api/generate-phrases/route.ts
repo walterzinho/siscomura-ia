@@ -24,27 +24,86 @@ function parseGeminiJson(text: string): Record<string, unknown> | null {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { quantity = 10, tone = 'contundente', topic = '', character = '' } = body;
+    const {
+      quantity = 10,
+      tones = ['contundente'],
+      topics = '',
+      character = '',
+    } = body;
+
+    const validTones = Array.isArray(tones) ? tones.filter((t: string) => TONE_PROMPTS[t]) : [TONE_PROMPTS[tones] ? tones : 'contundente'];
+    if (validTones.length === 0) validTones.push('contundente');
 
     if (quantity < 1 || quantity > 50) {
       return NextResponse.json({ error: 'La cantidad debe ser entre 1 y 50' }, { status: 400 });
     }
 
-    const systemPrompt = await loadPromptFile('contenido-personajes');
+    const topicList = typeof topics === 'string'
+      ? topics.split(',').map((t: string) => t.trim()).filter(Boolean)
+      : Array.isArray(topics)
+        ? topics.map((t: string) => String(t).trim()).filter(Boolean)
+        : [];
 
-    // Extract only the MODO 2 section
+    // Build distribution plan
+    const perTone = Math.floor(quantity / validTones.length);
+    const remainder = quantity % validTones.length;
+    const toneDistribution = validTones.map((tone: string, i: number) => ({
+      tone,
+      count: perTone + (i < remainder ? 1 : 0),
+    }));
+
+    const perTopic = topicList.length > 0
+      ? Math.floor(quantity / topicList.length)
+      : 0;
+    const topicRemainder = topicList.length > 0
+      ? quantity % topicList.length
+      : 0;
+
+    // Build tone instructions block
+    const toneInstructions = toneDistribution.map(d => {
+      const desc = TONE_PROMPTS[d.tone] || '';
+      return `- **${d.tone}** (${d.count} frases): ${desc}`;
+    }).join('\n');
+
+    // Build topic distribution instruction
+    let topicInstruction = '';
+    if (topicList.length > 0) {
+      const topicDistribution = topicList.map((topic: string, i: number) => {
+        const count = perTopic + (i < topicRemainder ? 1 : 0);
+        return `- "${topic}": ${count} frases`;
+      }).join('\n');
+
+      topicInstruction = `
+
+### DISTRIBUCIÓN DE TEMAS
+Reparte las ${quantity} frases equitativamente entre estos temas:
+${topicDistribution}
+Cada frase debe abordar uno de estos temas. Documenta el tema en la propiedad "tema" de cada frase.`;
+    } else {
+      topicInstruction = `
+
+### TEMAS
+Autogenera temas variados de la vida rural y el agro. Documenta el tema específico en la propiedad "tema" de cada frase.`;
+    }
+
+    const systemPrompt = await loadPromptFile('contenido-personajes');
     const modo2System = systemPrompt.split('## MODO 2:')[1] || '';
     const fullSystem = `Eres un experto en comunicación digital corta y contundente. Generas frases tipo X (Twitter) que son cortas, impactantes y virales, ideales para redes sociales de una emisora rural.\n\n${modo2System}`;
 
-    const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.contundente;
+    const userPrompt = `Genera exactamente ${quantity} frases tipo X/Twitter.
 
-    const userPrompt = `Genera exactamente ${quantity} frases tipo X/Twitter con las siguientes especificaciones:
+### DISTRIBUCIÓN DE TONOS
+${validTones.length === 1
+      ? `Todas las frases deben ser de tono **${validTones[0]}**: ${TONE_PROMPTS[validTones[0]]}`
+      : `Reparte las frases equitativamente entre estos tonos:\n${toneInstructions}`
+    }
 
-- Tono: ${tone}. ${toneInstruction}
-${topic ? `- Tema general: ${topic}` : ''}
-${character ? `- Voz del personaje: ${character}` : ''}
+La propiedad "tono" de cada frase debe indicar cuál de estos tonos se usó (${validTones.join(', ')}).${topicInstruction}
+${character ? `\n### VOZ DEL PERSONAJE\nEscribe todas las frases como si las dijera ${character}. Mantén su estilo y forma de expresarse.` : ''}
 
-Recuerda: máx 280 caracteres por frase, autocontenidas, con gancho para compartir. Varía dentro del tono seleccionado. JSON: {"frases": [{"frase": "...", "tema": "..."}]}`;
+Recuerda: máx 280 caracteres por frase, autocontenidas, con gancho para compartir. Varía dentro de cada tono y tema.
+
+Responde ÚNICAMENTE con JSON: {"frases": [{"frase": "...", "tema": "...", "tono": "..."}]}`;
 
     const response = await callGemini('contenido-personajes', userPrompt, fullSystem);
     const parsed = parseGeminiJson(response.text);
@@ -52,16 +111,20 @@ Recuerda: máx 280 caracteres por frase, autocontenidas, con gancho para compart
       return NextResponse.json({ error: 'No se pudo interpretar la respuesta', raw: response.text }, { status: 500 });
     }
 
-    const frases = parsed.frases as Array<{ frase: string; tema: string }>;
+    const frases = (parsed.frases as Array<{ frase: string; tema: string; tono: string }>).map(f => ({
+      frase: f.frase,
+      tema: f.tema || '',
+      tono: f.tono || validTones[0],
+    }));
 
     const moduleDef = getModuleById('contenido-personajes');
     await db.generation.create({
       data: {
         moduleId: 'contenido-personajes',
         moduleName: moduleDef?.name || 'Contenido de Personajes',
-        prompt: `Frases masivas: ${quantity} | ${tone} | ${topic || 'sin tema'}`,
-        result: frases.map((f, i) => `${i + 1}. ${f.frase}`).join('\n'),
-        metadata: JSON.stringify({ mode: 'phrases', tone, quantity, topic }),
+        prompt: `Frases masivas: ${quantity} | ${validTones.length} tonos | ${topicList.length || 0} temas`,
+        result: frases.map((f, i) => `${i + 1}. [${f.tono}] ${f.frase}`).join('\n'),
+        metadata: JSON.stringify({ mode: 'phrases', tones: validTones, topics: topicList, quantity }),
         apiKeyId: response.apiKeyId,
       },
     });

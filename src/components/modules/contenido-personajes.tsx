@@ -26,7 +26,7 @@ interface CampaignIdea {
 }
 
 interface PhraseItem {
-  frase: string; tema: string;
+  frase: string; tema: string; tono: string;
 }
 
 interface Character {
@@ -95,10 +95,16 @@ export function ContenidoPersonajesGenerator() {
 
   // ===== PHRASES STATE =====
   const [phraseCount, setPhraseCount] = useState(20);
-  const [phraseTone, setPhraseTone] = useState('contundente');
-  const [phraseTopic, setPhraseTopic] = useState('');
+  const [selectedTones, setSelectedTones] = useState<string[]>(['contundente']);
+  const [phraseTopics, setPhraseTopics] = useState('');
   const [phraseCharacter, setPhraseCharacter] = useState('');
   const [phrases, setPhrases] = useState<PhraseItem[]>([]);
+
+  const toggleTone = (id: string) => {
+    setSelectedTones(prev =>
+      prev.includes(id) ? (prev.length > 1 ? prev.filter(t => t !== id) : prev) : [...prev, id]
+    );
+  };
 
   // ===== UI STATE =====
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
@@ -191,7 +197,12 @@ export function ContenidoPersonajesGenerator() {
     try {
       const res = await fetch('/api/generate-phrases', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity: phraseCount, tone: phraseTone, topic: phraseTopic, character: phraseCharacter === '__none__' ? '' : phraseCharacter }),
+        body: JSON.stringify({
+          quantity: phraseCount,
+          tones: selectedTones,
+          topics: phraseTopics,
+          character: phraseCharacter === '__none__' ? '' : phraseCharacter,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -202,7 +213,7 @@ export function ContenidoPersonajesGenerator() {
       }
     } catch { toast.error('Error de conexión'); }
     finally { setGenerating(false); }
-  }, [phraseCount, phraseTone, phraseTopic, phraseCharacter, setGenerating]);
+  }, [phraseCount, selectedTones, phraseTopics, phraseCharacter, setGenerating]);
 
   // ===== COPY HELPERS =====
   const copyText = async (text: string, idx?: number) => {
@@ -219,14 +230,16 @@ export function ContenidoPersonajesGenerator() {
     copyText(all);
   };
 
+  const toneLabel = (id: string) => TONE_OPTIONS.find(t => t.id === id)?.label || id;
+
   const exportPhrasesCsv = () => {
-    const header = 'Numero|Frase|Tema';
-    const rows = phrases.map((p, i) => `${i + 1}|${p.frase}|${p.tema}`).join('\n');
+    const header = 'Numero|Frase|Tema|Tono';
+    const rows = phrases.map((p, i) => `${i + 1}|${p.frase}|${p.tema}|${p.tono || ''}`).join('\n');
     const csv = `${header}\n${rows}`;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `frases_${phraseTone}_${phraseCount}.csv`;
+    a.href = url; a.download = `frases_${selectedTones.length}tonos_${phraseCount}.csv`;
     a.click(); URL.revokeObjectURL(url);
   };
 
@@ -512,32 +525,44 @@ export function ContenidoPersonajesGenerator() {
                 </div>
               </div>
 
-              {/* Tone Grid */}
+              {/* Tone Grid - Multi Select */}
               <div className="space-y-2">
-                <Label className="text-xs">Tono</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Tonos <span className="text-muted-foreground font-normal">(selecciona varios, se repartirán)</span></Label>
+                  {selectedTones.length > 1 && (
+                    <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-300 dark:border-orange-800">{selectedTones.length} tonos seleccionados</Badge>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {TONE_OPTIONS.map(t => (
-                    <button key={t.id} onClick={() => setPhraseTone(t.id)}
-                      className={`text-left p-3 rounded-lg border transition-all ${
-                        phraseTone === t.id
-                          ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/30'
-                          : 'border-transparent bg-muted/50 hover:bg-muted'
-                      }`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{t.icon}</span>
-                        <span className={`text-xs font-bold ${phraseTone === t.id ? 'text-orange-600 dark:text-orange-400' : ''}`}>{t.label}</span>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{t.desc}</p>
-                    </button>
-                  ))}
+                  {TONE_OPTIONS.map(t => {
+                    const active = selectedTones.includes(t.id);
+                    return (
+                      <button key={t.id} onClick={() => toggleTone(t.id)}
+                        className={`text-left p-3 rounded-lg border transition-all relative ${
+                          active
+                            ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/30'
+                            : 'border-transparent bg-muted/50 hover:bg-muted'
+                        }`}>
+                        {active && <span className="absolute top-1.5 right-1.5 text-orange-500 text-xs font-bold">✓</span>}
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{t.icon}</span>
+                          <span className={`text-xs font-bold ${active ? 'text-orange-600 dark:text-orange-400' : ''}`}>{t.label}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{t.desc}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Topic + Character */}
+              {/* Topics + Character */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label className="text-xs">Tema (opcional)</Label>
-                  <Input value={phraseTopic} onChange={e => setPhraseTopic(e.target.value)} placeholder="Ej: la siembra, el café, la lluvia..." className="text-xs" />
+                  <Label className="text-xs">Temas <span className="text-muted-foreground font-normal">(separa con coma, se repartirán)</span></Label>
+                  <Textarea value={phraseTopics} onChange={e => setPhraseTopics(e.target.value)} rows={2} className="resize-none text-xs" placeholder="Ej: la siembra, el café, la lluvia, el mercado, las plagas..." />
+                  {phraseTopics.includes(',') && (
+                    <p className="text-[10px] text-orange-500 font-medium">{phraseTopics.split(',').filter(t => t.trim()).length} temas se repartirán entre las {phraseCount} frases</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Voz de Personaje (opcional)</Label>
@@ -567,7 +592,10 @@ export function ContenidoPersonajesGenerator() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-sm">{phrases.length} Frases Generadas</CardTitle>
-                    <p className="text-xs text-muted-foreground">Tono: {phraseTone}{phraseTopic ? ` · Tema: ${phraseTopic}` : ''}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedTones.length > 1 ? `${selectedTones.length} tonos` : toneLabel(selectedTones[0])}
+                      {phraseTopics ? ` · ${phraseTopics.split(',').filter(t => t.trim()).length} temas` : ''}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={copyAllPhrases} className="gap-1 text-xs">
@@ -586,7 +614,10 @@ export function ContenidoPersonajesGenerator() {
                       <span className="text-xs font-mono text-muted-foreground mt-0.5 w-6 shrink-0 text-right">{idx + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm leading-relaxed">{p.frase}</p>
-                        {p.tema && <Badge variant="secondary" className="mt-1.5 text-[10px]">{p.tema}</Badge>}
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          {p.tema && <Badge variant="secondary" className="text-[10px]">{p.tema}</Badge>}
+                          {p.tono && <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-200 dark:border-orange-800">{toneLabel(p.tono)}</Badge>}
+                        </div>
                       </div>
                       <button onClick={() => copyText(p.frase, idx)}
                         className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted">
