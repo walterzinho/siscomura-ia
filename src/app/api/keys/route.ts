@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
 import { validateOrThrow, ValidationError, createApiKeySchema, updateApiKeySchema } from '@/lib/validations';
+import { logError } from '@/lib/logger';
+
+const ROUTE = '/api/keys';
 
 export async function GET() {
   try {
-    await checkRateLimit('write');
+    await checkRateLimit('read');
     const keys = await db.apiKey.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -27,11 +30,9 @@ export async function GET() {
         headers: { 'Retry-After': String(error.retryAfter) }
       });
     }
-    if (error instanceof ValidationError) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    const msg = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: 'Error al obtener API Keys', detail: msg }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'GET failed', { error: message });
+    return NextResponse.json({ error: 'Error al obtener API Keys', detail: message }, { status: 500 });
   }
 }
 
@@ -65,8 +66,9 @@ export async function POST(request: NextRequest) {
     if (error instanceof ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    const msg = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: 'Error al crear API Key', detail: msg }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'POST failed', { error: message });
+    return NextResponse.json({ error: 'Error al crear API Key', detail: message }, { status: 500 });
   }
 }
 
@@ -95,8 +97,9 @@ export async function PUT(request: NextRequest) {
     if (error instanceof ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    const msg = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: 'Error al actualizar API Key', detail: msg }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'PUT failed', { error: message });
+    return NextResponse.json({ error: 'Error al actualizar API Key', detail: message }, { status: 500 });
   }
 }
 
@@ -123,7 +126,8 @@ export async function DELETE(request: NextRequest) {
     if (error instanceof ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    const msg = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: 'Error al eliminar API Key', detail: msg }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'DELETE failed', { error: message });
+    return NextResponse.json({ error: 'Error al eliminar API Key', detail: message }, { status: 500 });
   }
 }

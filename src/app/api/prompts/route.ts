@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
 import { validateOrThrow, ValidationError, updatePromptSchema } from '@/lib/validations';
+import { logError } from '@/lib/logger';
+
+const ROUTE = '/api/prompts';
 
 export async function GET() {
   try {
-    await checkRateLimit('write');
-    // Ensure prompts are seeded from .md files (local dev only, no-op on Vercel)
+    await checkRateLimit('read');
     await db.prompt.seedFromFilesystem();
     const prompts = await db.prompt.findMany();
     return NextResponse.json(prompts);
@@ -17,13 +19,9 @@ export async function GET() {
         headers: { 'Retry-After': String(error.retryAfter) }
       });
     }
-    if (error instanceof ValidationError) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    return NextResponse.json(
-      { error: 'Error al leer prompts' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'GET failed', { error: message });
+    return NextResponse.json({ error: 'Error al leer prompts', detail: message }, { status: 500 });
   }
 }
 
@@ -46,9 +44,8 @@ export async function PUT(request: NextRequest) {
     if (error instanceof ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json(
-      { error: 'Error al guardar prompt' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'PUT failed', { error: message });
+    return NextResponse.json({ error: 'Error al guardar prompt', detail: message }, { status: 500 });
   }
 }

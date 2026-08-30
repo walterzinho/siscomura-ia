@@ -5,6 +5,8 @@ import { getModuleById } from '@/lib/modules';
 import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
 import { validateOrThrow, ValidationError, generatePhrasesSchema } from '@/lib/validations';
 import { wrapUserPrompt } from '@/lib/prompt-sanitizer';
+import { parseGeminiJson, extractArray } from '@/lib/parse-json';
+import { logError } from '@/lib/logger';
 
 const TONE_PROMPTS: Record<string, string> = {
   motivacional: 'Frases que inspiran y motivan al campesino, conectadas a la tierra, la siembra y la fe.',
@@ -15,14 +17,7 @@ const TONE_PROMPTS: Record<string, string> = {
   contundente: 'Frases fuertes, directas, con personalidad, estilo pensamiento del día.',
 };
 
-function parseGeminiJson(text: string): Record<string, unknown> | null {
-  try { return JSON.parse(text); } catch {}
-  const m = text.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
-  if (m) { try { return JSON.parse(m[1].trim()); } catch {} }
-  const s = text.indexOf('{'), e = text.lastIndexOf('}');
-  if (s !== -1 && e > s) { try { return JSON.parse(text.slice(s, e + 1)); } catch {} }
-  return null;
-}
+const ROUTE = '/api/generate-phrases';
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,7 +34,6 @@ export async function POST(req: NextRequest) {
     if (validTones.length === 0) validTones.push('contundente');
 
     const topicList = topics.split(',').map((t: string) => t.trim()).filter(Boolean);
-    // Build distribution plan
     const perTone = Math.floor(quantity / validTones.length);
     const remainder = quantity % validTones.length;
     const toneDistribution = validTones.map((tone: string, i: number) => ({
@@ -54,13 +48,11 @@ export async function POST(req: NextRequest) {
       ? quantity % topicList.length
       : 0;
 
-    // Build tone instructions block
     const toneInstructions = toneDistribution.map(d => {
       const desc = TONE_PROMPTS[d.tone] || '';
       return `- **${d.tone}** (${d.count} frases): ${desc}`;
     }).join('\n');
 
-    // Build topic distribution instruction
     let topicInstruction = '';
     if (topicList.length > 0) {
       const topicDistribution = topicList.map((topic: string, i: number) => {
@@ -102,12 +94,26 @@ Responde ÚNICAMENTE con JSON: {"frases": [{"frase": "...", "tema": "...", "tono
 
     const response = await callGemini('contenido-personajes', wrapUserPrompt(userPrompt), fullSystem);
     const parsed = parseGeminiJson(response.text);
+
     if (!parsed || !parsed.frases) {
-      return NextResponse.json({ error: 'No se pudo interpretar la respuesta', raw: response.text }, { status: 500 });
+      logError(ROUTE, 'Failed to parse Gemini JSON or missing frases array');
+      return NextResponse.json(
+        { error: 'La IA no devolvió un JSON válido con el campo "frases". Intenta nuevamente.' },
+        { status: 502 }
+      );
     }
 
-    const frases = (parsed.frases as Array<{ frase: string; tema: string; tono: string }>).map(f => ({
-      frase: f.frase,
+    const frases = extractArray<{ frase: string; tema: string; tono: string }>(parsed, 'frases');
+    if (!frases) {
+      logError(ROUTE, 'frases field is not a valid array');
+      return NextResponse.json(
+        { error: 'El campo "frases" no es un array válido. Intenta nuevamente.' },
+        { status: 502 }
+      );
+    }
+
+    const cleaned = frases.map(f => ({
+      frase: f.frase || '',
       tema: f.tema || '',
       tono: f.tono || validTones[0],
     }));
@@ -118,13 +124,13 @@ Responde ÚNICAMENTE con JSON: {"frases": [{"frase": "...", "tema": "...", "tono
         moduleId: 'contenido-personajes',
         moduleName: moduleDef?.name || 'Contenido de Personajes',
         prompt: `Frases masivas: ${quantity} | ${validTones.length} tonos | ${topicList.length || 0} temas`,
-        result: frases.map((f, i) => `${i + 1}. [${f.tono}] ${f.frase}`).join('\n'),
+        result: cleaned.map((f, i) => `${i + 1}. [${f.tono}] ${f.frase}`).join('\n'),
         metadata: JSON.stringify({ mode: 'phrases', tones: validTones, topics: topicList, quantity }),
         apiKeyId: response.apiKeyId,
       },
     });
 
-    return NextResponse.json({ success: true, frases });
+    return NextResponse.json({ success: true, frases: cleaned });
   } catch (error) {
     if (error instanceof RateLimitError) {
       return NextResponse.json({ error: error.message }, {
@@ -136,6 +142,7 @@ Responde ÚNICAMENTE con JSON: {"frases": [{"frase": "...", "tema": "...", "tono
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

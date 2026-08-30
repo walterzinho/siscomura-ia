@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { validateOrThrow, ValidationError } from '@/lib/validations';
+import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 import { z } from 'zod';
 
 const setupSchema = z.object({
@@ -10,12 +12,16 @@ const setupSchema = z.object({
   password: z.string().min(8, 'Minimo 8 caracteres').max(100),
 });
 
+const ROUTE = '/api/auth/setup';
+
 /** GET: returns whether setup is needed (no users exist) */
 export async function GET() {
   try {
     const count = await db.user.count();
     return NextResponse.json({ needsSetup: count === 0 });
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'GET failed', { error: message });
     return NextResponse.json({ needsSetup: true });
   }
 }
@@ -23,6 +29,8 @@ export async function GET() {
 /** POST: create the first admin user (only works when 0 users exist) */
 export async function POST(request: Request) {
   try {
+    await checkRateLimit('admin');
+
     const count = await db.user.count();
     if (count > 0) {
       return NextResponse.json(
@@ -50,10 +58,17 @@ export async function POST(request: Request) {
       user: { id: user.id, email: user.email, name: user.name },
     });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, {
+        status: 429,
+        headers: { 'Retry-After': String(error.retryAfter) },
+      });
+    }
     if (error instanceof ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    const msg = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'POST failed', { error: message });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

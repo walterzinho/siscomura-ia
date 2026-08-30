@@ -7,9 +7,13 @@
 
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 
-export type RateLimitConfig = 'generate' | 'write' | 'admin';
+export type RateLimitConfig = 'generate' | 'read' | 'write' | 'admin';
 
 const limiters: Record<RateLimitConfig, RateLimiterMemory> = {
+  read: new RateLimiterMemory({
+    points: 60,
+    duration: 60, // 60 requests per minute
+  }),
   generate: new RateLimiterMemory({
     points: 20,
     duration: 60, // 20 requests per minute

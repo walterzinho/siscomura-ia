@@ -5,6 +5,8 @@ import { getModuleById } from '@/lib/modules';
 import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
 import { validateOrThrow, ValidationError, generateCampaignSchema } from '@/lib/validations';
 import { wrapUserPrompt } from '@/lib/prompt-sanitizer';
+import { parseGeminiJson, extractArray } from '@/lib/parse-json';
+import { logError } from '@/lib/logger';
 
 const PHOTO_STYLES: Record<string, string> = {
   cinematic: 'Realistic, highly detailed, cinematic lighting, shallow depth of field, 50mm lens effect, professional composition, 2K.',
@@ -15,14 +17,7 @@ const PHOTO_STYLES: Record<string, string> = {
   macro: 'Professional agricultural macro studio photography, high-end close-up, sharp focus, studio lighting.',
 };
 
-function parseGeminiJson(text: string): Record<string, unknown> | null {
-  try { return JSON.parse(text); } catch {}
-  const m = text.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
-  if (m) { try { return JSON.parse(m[1].trim()); } catch {} }
-  const s = text.indexOf('{'), e = text.lastIndexOf('}');
-  if (s !== -1 && e > s) { try { return JSON.parse(text.slice(s, e + 1)); } catch {} }
-  return null;
-}
+const ROUTE = '/api/generate-campaign';
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,24 +49,31 @@ export async function POST(req: NextRequest) {
       largo: '7-10 oraciones con explicación detallada, anécdotas y CTA extenso.',
     };
 
-    const userPrompt = `${characterName}: ${characterDesc}
-
-${topicsClause}
-
-Estilo de redacción: ${depthMap[enfoque] || depthMap.consejo}
-Extensión del copy de Facebook: ${lengthMap[fbLength] || lengthMap.medio}
-
-Genera exactamente ${numMessages} propuestas con los 7 campos especificados.`;
+    const userPrompt = `${characterName}: ${characterDesc}\n\n${topicsClause}\n\nEstilo de redacción: ${depthMap[enfoque] || depthMap.consejo}\nExtensión del copy de Facebook: ${lengthMap[fbLength] || lengthMap.medio}\n\nGenera exactamente ${numMessages} propuestas con los 7 campos especificados.`;
 
     const response = await callGemini('contenido-personajes', wrapUserPrompt(userPrompt), systemPrompt);
     const parsed = parseGeminiJson(response.text);
+
     if (!parsed || !parsed.ideas) {
-      return NextResponse.json({ error: 'No se pudo interpretar la respuesta', raw: response.text }, { status: 500 });
+      logError(ROUTE, 'Failed to parse Gemini JSON or missing ideas array');
+      return NextResponse.json(
+        { error: 'La IA no devolvió un JSON válido con el campo "ideas". Intenta nuevamente.' },
+        { status: 502 }
+      );
+    }
+
+    const ideas = extractArray<Record<string, string>>(parsed, 'ideas');
+    if (!ideas) {
+      logError(ROUTE, 'ideas field is not a valid array');
+      return NextResponse.json(
+        { error: 'El campo "ideas" no es un array válido. Intenta nuevamente.' },
+        { status: 502 }
+      );
     }
 
     const styleDirective = PHOTO_STYLES[photoStyle] || PHOTO_STYLES.cinematic;
 
-    const ideas = (parsed.ideas as Array<Record<string, string>>).map((idea) => {
+    const enriched = ideas.map((idea) => {
       let copy = idea.copy_facebook || '';
       if (footer) copy += `\n\n${footer}`;
       if (hashtags) copy += `\n${hashtags}`;
@@ -85,13 +87,13 @@ Genera exactamente ${numMessages} propuestas con los 7 campos especificados.`;
         moduleId: 'contenido-personajes',
         moduleName: moduleDef?.name || 'Contenido de Personajes',
         prompt: `Campaña: ${characterName} | ${numMessages} msgs | ${enfoque} | ${photoStyle}`,
-        result: `Campaña generada: ${ideas.length} propuestas para ${characterName}`,
-        metadata: JSON.stringify({ characterName, enfoque, photoStyle, count: ideas.length }),
+        result: `Campaña generada: ${enriched.length} propuestas para ${characterName}`,
+        metadata: JSON.stringify({ characterName, enfoque, photoStyle, count: enriched.length }),
         apiKeyId: response.apiKeyId,
       },
     });
 
-    return NextResponse.json({ success: true, ideas });
+    return NextResponse.json({ success: true, ideas: enriched });
   } catch (error) {
     if (error instanceof RateLimitError) {
       return NextResponse.json({ error: error.message }, {
@@ -103,6 +105,7 @@ Genera exactamente ${numMessages} propuestas con los 7 campos especificados.`;
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
 import { validateOrThrow, ValidationError, deleteGenerationSchema } from '@/lib/validations';
+import { logError } from '@/lib/logger';
+
+const ROUTE = '/api/generations';
 
 export async function GET(request: NextRequest) {
   try {
-    await checkRateLimit('write');
+    await checkRateLimit('read');
     const { searchParams } = new URL(request.url);
     const moduleId = searchParams.get('moduleId');
     const limit = parseInt(searchParams.get('limit') || '50', 10);
@@ -24,10 +27,9 @@ export async function GET(request: NextRequest) {
         headers: { 'Retry-After': String(error.retryAfter) }
       });
     }
-    if (error instanceof ValidationError) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Error al obtener historial' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'GET failed', { error: message });
+    return NextResponse.json({ error: 'Error al obtener historial', detail: message }, { status: 500 });
   }
 }
 
@@ -39,13 +41,11 @@ export async function DELETE(request: NextRequest) {
     const olderThanDays = searchParams.get('olderThan');
     const clearAll = searchParams.get('all');
 
-    // Bulk: delete all
     if (clearAll === 'true') {
       const r = await db._raw({ sql: 'DELETE FROM Generation' });
       return NextResponse.json({ success: true, deleted: r.rowsAffected || 0 });
     }
 
-    // Bulk: delete older than N days
     if (olderThanDays) {
       const days = parseInt(olderThanDays, 10);
       if (isNaN(days) || days < 1) {
@@ -58,7 +58,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true, deleted: r.rowsAffected || 0 });
     }
 
-    // Single: delete by ID
     if (!id) {
       return NextResponse.json({ error: 'Se requiere ID, olderThan o all' }, { status: 400 });
     }
@@ -77,7 +76,8 @@ export async function DELETE(request: NextRequest) {
     if (error instanceof ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    const msg = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: 'Error al eliminar', detail: msg }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, 'DELETE failed', { error: message });
+    return NextResponse.json({ error: 'Error al eliminar', detail: message }, { status: 500 });
   }
 }

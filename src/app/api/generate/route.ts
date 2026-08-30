@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
 import { validateOrThrow, ValidationError, generateSchema } from '@/lib/validations';
 import { wrapUserPrompt } from '@/lib/prompt-sanitizer';
+import { logError, logWarn } from '@/lib/logger';
 
 async function fetchUrlContent(url: string): Promise<string> {
   try {
@@ -26,7 +27,10 @@ async function fetchUrlContent(url: string): Promise<string> {
         .slice(0, 15000);
     }
     return '';
-  } catch {
+  } catch (err) {
+    logWarn('/api/generate', `Failed to fetch URL content: ${url}`, {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return '';
   }
 }
@@ -106,6 +110,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError('/api/generate', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

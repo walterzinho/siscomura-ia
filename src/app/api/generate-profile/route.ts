@@ -5,6 +5,8 @@ import { getModuleById } from '@/lib/modules';
 import { checkRateLimit, RateLimitError } from '@/lib/rate-limit';
 import { validateOrThrow, ValidationError, generateProfileSchema } from '@/lib/validations';
 import { wrapUserPrompt } from '@/lib/prompt-sanitizer';
+import { parseGeminiJson } from '@/lib/parse-json';
+import { logError } from '@/lib/logger';
 
 function buildProfilePrompt(data: Record<string, string>): string {
   return `Genera una configuración completa de perfil de voz con estos datos del locutor/a:
@@ -22,22 +24,7 @@ Genera DOS versiones del perfil: una en español (profileEs) y otra en inglés (
 Responde ÚNICAMENTE con un JSON válido (sin markdown, sin backticks) con la estructura que indica el system prompt.`;
 }
 
-function parseGeminiJson(text: string): Record<string, unknown> | null {
-  try { return JSON.parse(text); } catch {}
-
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    try { return JSON.parse(codeBlockMatch[1].trim()); } catch {}
-  }
-
-  const braceStart = text.indexOf('{');
-  const braceEnd = text.lastIndexOf('}');
-  if (braceStart !== -1 && braceEnd > braceStart) {
-    try { return JSON.parse(text.slice(braceStart, braceEnd + 1)); } catch {}
-  }
-
-  return null;
-}
+const ROUTE = '/api/generate-profile';
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,33 +42,37 @@ export async function POST(req: NextRequest) {
     const prompt = buildProfilePrompt({ name, age, gender, profileType, region, scenario, additional });
 
     const response = await callGemini('perfiles-locutores-ia', wrapUserPrompt(prompt));
-    const text = response.text;
+    const parsed = parseGeminiJson(response.text);
 
-    const parsed = parseGeminiJson(text);
     if (!parsed) {
+      logError(ROUTE, 'Failed to parse Gemini JSON response');
       return NextResponse.json(
-        { error: 'No se pudo interpretar la respuesta de la IA como JSON', raw: text },
-        { status: 500 }
+        { error: 'La IA no devolvió un JSON válido. Intenta nuevamente.' },
+        { status: 502 }
       );
     }
 
     const profileEs = (parsed.profileEs || parsed) as Record<string, unknown>;
     const profileEn = (parsed.profileEn || null) as Record<string, unknown> | null;
 
+    // Safe property access with fallbacks
+    const get = (obj: Record<string, unknown>, key: string, fallback = 'N/A') =>
+      (obj[key] as string) || fallback;
+
     // Save generation to history
     const moduleDef = getModuleById('perfiles-locutores-ia');
     const profileText = [
       `Perfil: ${profileType || name}`,
       `Locutor/a: ${name || 'N/A'}`,
-      `Voz: ${profileEs.voice}`,
-      `Style: ${profileEs.style}`,
-      `Pace: ${profileEs.pace}`,
-      `Temperature: ${profileEs.temperature}`,
-      `Audio Profile: ${profileEs.audioProfile}`,
-      `Scene: ${profileEs.scene}`,
-      `Sample Context: ${profileEs.sampleContext}`,
-      `Tag: ${profileEs.tag}`,
-      `Tags sugeridos: ${((profileEs.suggestedTags as string[]) || []).join(', ')}`,
+      `Voz: ${get(profileEs, 'voice')}`,
+      `Style: ${get(profileEs, 'style')}`,
+      `Pace: ${get(profileEs, 'pace')}`,
+      `Temperature: ${get(profileEs, 'temperature')}`,
+      `Audio Profile: ${get(profileEs, 'audioProfile')}`,
+      `Scene: ${get(profileEs, 'scene')}`,
+      `Sample Context: ${get(profileEs, 'sampleContext')}`,
+      `Tag: ${get(profileEs, 'tag')}`,
+      `Tags sugeridos: ${Array.isArray(profileEs.suggestedTags) ? (profileEs.suggestedTags as string[]).join(', ') : 'N/A'}`,
     ].join('\n');
 
     await db.generation.create({
@@ -107,6 +98,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     const message = error instanceof Error ? error.message : 'Error desconocido';
+    logError(ROUTE, message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
