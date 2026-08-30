@@ -16,6 +16,7 @@ const ContenidoMulticanal = lazy(() => import('./contenido-multicanal').then(m =
 const ConexionTerritorial = lazy(() => import('./conexion-territorial').then(m => ({ default: m.ConexionTerritorialGenerator })));
 const PerfilesLocutores = lazy(() => import('./perfiles-locutores-ia').then(m => ({ default: m.PerfilesLocutoresIaGenerator })));
 const ContenidoPersonajes = lazy(() => import('./contenido-personajes').then(m => ({ default: m.ContenidoPersonajesGenerator })));
+const GeneradorJingles = lazy(() => import('./generador-jingles').then(m => ({ default: m.GeneradorJinglesGenerator })));
 
 function ModuleSkeleton() {
   return (
@@ -77,6 +78,10 @@ export function ModuleRouter({ moduleId }: ModuleRouterProps) {
 
   if (moduleId === 'contenido-personajes') {
     return <Suspense fallback={<ModuleSkeleton />}><ContenidoPersonajes /></Suspense>;
+  }
+
+  if (moduleId === 'generador-jingles') {
+    return <Suspense fallback={<ModuleSkeleton />}><GeneradorJingles /></Suspense>;
   }
 
   if (moduleDef.hasUrl) {

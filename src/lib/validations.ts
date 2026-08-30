@@ -70,6 +70,36 @@ export const generateProfileSchema = z.object({
   additional: z.string().max(2000).default(''),
 });
 
+// ── Generador de Jingles ──
+export const VALID_PLATAFORMA = ['suno', 'udio', 'google-musicfx'] as const;
+export const VALID_CLASE_JINGLE = ['marca', 'oferta', 'evento', 'programa'] as const;
+export const VALID_PARA_QUIEN = ['institucional', 'cliente'] as const;
+export const VALID_RIMA = ['AABB', 'ABAB', 'ABBA', 'AAAA', 'interna'] as const;
+export const VALID_ESTRUCTURA = ['simple', 'completa'] as const;
+export const VALID_VOCAL = ['masculino', 'femenino', 'duo', 'coro', 'instrumental'] as const;
+
+export const generateJingleSchema = z.object({
+  plataforma: z.enum(VALID_PLATAFORMA),
+  clase: z.enum(VALID_CLASE_JINGLE),
+  paraQuien: z.enum(VALID_PARA_QUIEN),
+  nombreJingle: z.string().max(200).default(''),
+  nombreSujeto: z.string().max(200).default(''),
+  objetivo: z.string().max(2000).default(''),
+  mensajeResaltar: z.string().max(1000).default(''),
+  datosContacto: z.string().max(500).default(''),
+  genero: z.string().max(100).default(''),
+  tempo: z.string().max(50).default('medio'),
+  tempoPersonalizado: z.string().max(10).optional(),
+  instrumentos: z.array(z.string()).max(8).default([]),
+  estiloVocal: z.enum(VALID_VOCAL).default('masculino'),
+  mood: z.string().max(100).default('festivo'),
+  estructura: z.enum(VALID_ESTRUCTURA).default('simple'),
+  tipoRima: z.enum(VALID_RIMA).default('AABB'),
+  numeroEstrofas: z.string().default('2'),
+  duracion: z.string().max(20).default('15-20'),
+  incluirLocucion: z.boolean().default(true),
+});
+
 // ── Prompt Editor ──
 export const updatePromptSchema = z.object({
   moduleId: z.string().min(1, 'Se requiere moduleId').max(100),

@@ -100,6 +100,16 @@ export const MODULES: ModuleDef[] = [
     hasUrl: false,
     hasMultiUrl: false,
   },
+  {
+    id: 'generador-jingles',
+    number: 10,
+    name: 'Generador de Jingles',
+    description: 'Prompts musicales listos para Suno, Udio o Google MusicFX con control de ritmo, instrumentación y estructura',
+    icon: 'Music2',
+    placeholder: 'Plataforma, género, tempo, instrumentos, tipo de rima...',
+    hasUrl: false,
+    hasMultiUrl: false,
+  },
 ];
 
 export function getModuleById(id: string): ModuleDef | undefined {
