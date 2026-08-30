@@ -1,20 +1,32 @@
 'use client';
 
+import { lazy, Suspense } from 'react';
 import { GenericGenerator } from './generic-generator';
 import { UrlGenerator } from './url-generator';
 import { MultiUrlGenerator } from './multi-url-generator';
-import { CunasInstitucionalesGenerator } from './cunas-institucionales';
-import { CunasClientesGenerator } from './cunas-clientes';
-import { HoroscopoSemanalGenerator } from './horoscopo-semanal';
-import { BienestarCampesinoGenerator } from './bienestar-campesino';
-import { SembrandoEsperanzaGenerator } from './sembrando-esperanza';
-import { PresentacionFranjasGenerator } from './presentacion-franjas';
-import { GeneradorLibretosGenerator } from './generador-libretos';
-import { ContenidoMulticanalGenerator } from './contenido-multicanal';
-import { ConexionTerritorialGenerator } from './conexion-territorial';
-import { PerfilesLocutoresIaGenerator } from './perfiles-locutores-ia';
-import { ContenidoPersonajesGenerator } from './contenido-personajes';
 import { getModuleById } from '@/lib/modules';
+
+// Lazy-loaded module components for code splitting
+const CunasInstitucionales = lazy(() => import('./cunas-institucionales').then(m => ({ default: m.CunasInstitucionalesGenerator })));
+const CunasClientes = lazy(() => import('./cunas-clientes').then(m => ({ default: m.CunasClientesGenerator })));
+const HoroscopoSemanal = lazy(() => import('./horoscopo-semanal').then(m => ({ default: m.HoroscopoSemanalGenerator })));
+const PresentacionFranjas = lazy(() => import('./presentacion-franjas').then(m => ({ default: m.PresentacionFranjasGenerator })));
+const GeneradorLibretos = lazy(() => import('./generador-libretos').then(m => ({ default: m.GeneradorLibretosGenerator })));
+const ContenidoMulticanal = lazy(() => import('./contenido-multicanal').then(m => ({ default: m.ContenidoMulticanalGenerator })));
+const ConexionTerritorial = lazy(() => import('./conexion-territorial').then(m => ({ default: m.ConexionTerritorialGenerator })));
+const PerfilesLocutores = lazy(() => import('./perfiles-locutores-ia').then(m => ({ default: m.PerfilesLocutoresIaGenerator })));
+const ContenidoPersonajes = lazy(() => import('./contenido-personajes').then(m => ({ default: m.ContenidoPersonajesGenerator })));
+
+function ModuleSkeleton() {
+  return (
+    <div className="flex items-center justify-center p-12">
+      <div className="flex items-center gap-3 text-muted-foreground">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        <span>Cargando módulo...</span>
+      </div>
+    </div>
+  );
+}
 
 interface ModuleRouterProps {
   moduleId: string;
@@ -30,49 +42,41 @@ export function ModuleRouter({ moduleId }: ModuleRouterProps) {
     );
   }
 
-  // Custom form modules
+  // Custom form modules (lazy loaded)
   if (moduleId === 'cunas-institucionales') {
-    return <CunasInstitucionalesGenerator />;
+    return <Suspense fallback={<ModuleSkeleton />}><CunasInstitucionales /></Suspense>;
   }
 
   if (moduleId === 'cunas-clientes') {
-    return <CunasClientesGenerator />;
+    return <Suspense fallback={<ModuleSkeleton />}><CunasClientes /></Suspense>;
   }
 
   if (moduleId === 'horoscopo-semanal') {
-    return <HoroscopoSemanalGenerator />;
-  }
-
-  if (moduleId === 'bienestar-campesino') {
-    return <BienestarCampesinoGenerator />;
-  }
-
-  if (moduleId === 'sembrando-esperanza') {
-    return <SembrandoEsperanzaGenerator />;
+    return <Suspense fallback={<ModuleSkeleton />}><HoroscopoSemanal /></Suspense>;
   }
 
   if (moduleId === 'presentacion-franjas') {
-    return <PresentacionFranjasGenerator />;
+    return <Suspense fallback={<ModuleSkeleton />}><PresentacionFranjas /></Suspense>;
   }
 
   if (moduleId === 'generador-libretos') {
-    return <GeneradorLibretosGenerator />;
+    return <Suspense fallback={<ModuleSkeleton />}><GeneradorLibretos /></Suspense>;
   }
 
   if (moduleId === 'noticias-multicanal') {
-    return <ContenidoMulticanalGenerator />;
+    return <Suspense fallback={<ModuleSkeleton />}><ContenidoMulticanal /></Suspense>;
   }
 
   if (moduleId === 'conexion-territorial') {
-    return <ConexionTerritorialGenerator />;
+    return <Suspense fallback={<ModuleSkeleton />}><ConexionTerritorial /></Suspense>;
   }
 
   if (moduleId === 'perfiles-locutores-ia') {
-    return <PerfilesLocutoresIaGenerator />;
+    return <Suspense fallback={<ModuleSkeleton />}><PerfilesLocutores /></Suspense>;
   }
 
   if (moduleId === 'contenido-personajes') {
-    return <ContenidoPersonajesGenerator />;
+    return <Suspense fallback={<ModuleSkeleton />}><ContenidoPersonajes /></Suspense>;
   }
 
   if (moduleDef.hasUrl) {
