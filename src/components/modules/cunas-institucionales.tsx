@@ -123,7 +123,7 @@ function buildPrompt(form: FormData): string {
     lines.push(`Nombre del Programa, Campaña o Franja: ${form.nombrePrograma.trim()}`);
   }
   if (form.horarioEmision.trim()) {
-    lines.push(`Horario de Emision: ${form.horarioEmision.trim()}`);
+    lines.push(`Horario de Emisión: ${form.horarioEmision.trim()}`);
   }
 
   lines.push('');

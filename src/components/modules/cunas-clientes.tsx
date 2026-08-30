@@ -179,7 +179,7 @@ function buildPrompt(form: FormData): string {
     lines.push(`Nombre del Cliente: ${form.nombreCliente.trim()}`);
   }
   if (form.direccion.trim()) {
-    lines.push(`Direccion: ${form.direccion.trim()}`);
+    lines.push(`Dirección: ${form.direccion.trim()}`);
   }
   if (form.email.trim()) {
     lines.push(`E-mail: ${form.email.trim()}`);

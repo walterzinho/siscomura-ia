@@ -26,8 +26,8 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 const PHASES = [
   { id: 0, key: 'noticia', name: 'Noticia Radio',        description: 'Genera la noticia completa para radio a partir del contexto fuente.',          icon: Radio },
   { id: 1, key: 'flashes', name: 'Flashes Informativos',    description: 'Crea 3 libretos tipo Flash Informativo a partir de la noticia generada.',       icon: Zap },
-  { id: 2, key: 'seo',     name: 'Articulo SEO',             description: 'Genera un articulo de blog optimizado para buscadores a partir de la noticia.',   icon: Search },
-  { id: 3, key: 'imagenes', name: 'Prompts de Imagenes',     description: 'Genera 3 prompts detallados para imagenes fotorrealistas a partir de la noticia.', icon: ImageIcon },
+  { id: 2, key: 'seo',     name: 'Artículo SEO',             description: 'Genera un artículo de blog optimizado para buscadores a partir de la noticia.',   icon: Search },
+  { id: 3, key: 'imagenes', name: 'Prompts de Imagenes',     description: 'Genera 3 prompts detallados para imágenes fotorrealistas a partir de la noticia.', icon: ImageIcon },
   { id: 4, key: 'redes',   name: 'Publicaciones Redes',     description: 'Genera posts para Facebook, Instagram, X/Twitter y WhatsApp con hashtags.',        icon: Share2 },
 ] as const;
 
@@ -41,7 +41,7 @@ const TONO_OPTIONS = [
 const PHASE_LABELS: Record<number, string> = {
   0: 'Generar Noticia',
   1: 'Generar Flashes',
-  2: 'Generar Articulo SEO',
+  2: 'Generar Artículo SEO',
   3: 'Generar Prompts de Imagenes',
   4: 'Generar Publicaciones',
 };
@@ -89,7 +89,7 @@ function buildPrompt(
         '',
         `TONO: ${tonoLabel}`,
         '',
-        `FASE ACTUAL: Fase 3 — Articulo SEO`,
+        `FASE ACTUAL: Fase 3 — Artículo SEO`,
         `A partir de la noticia generada arriba, genera un articulo de blog optimizado para buscadores. Sigue las instrucciones de la FASE 3 del sistema.`,
       ].join('\n');
       break;
@@ -101,7 +101,7 @@ function buildPrompt(
         `TONO: ${tonoLabel}`,
         '',
         `FASE ACTUAL: Fase 4 — Prompts de Imagenes`,
-        `A partir de la noticia generada arriba, genera 3 prompts detallados para imagenes fotorrealistas. Sigue las instrucciones de la FASE 4 del sistema.`,
+        `A partir de la noticia generada arriba, genera 3 prompts detallados para imágenes fotorrealistas. Sigue las instrucciones de la FASE 4 del sistema.`,
       ].join('\n');
       break;
     case 4:
@@ -338,7 +338,7 @@ export function ContenidoMulticanalGenerator() {
               </Badge>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Convierte una noticia o contexto fuente en contenido optimizado para 5 canales distintos: radio, flashes, blog SEO, imagenes y redes sociales.
+              Convierte una noticia o contexto fuente en contenido optimizado para 5 canales distintos: radio, flashes, blog SEO, imágenes y redes sociales.
             </p>
           </div>
           <Button

@@ -353,7 +353,7 @@ async function parsePlaylistFile(file: File): Promise<{ songs: SongEntry[]; form
         genero: '',
       };
     });
-    return { songs, format: 'TXT (lineas)' };
+    return { songs, format: 'TXT (líneas)' };
   }
 
   return { songs: [], format: ext.toUpperCase() };
@@ -371,7 +371,7 @@ function buildPrompt(form: FormData): string {
   lines.push('--- DATOS DEL PROGRAMA ---');
   lines.push(`Nombre del Programa: ${form.nombrePrograma.trim()}`);
   lines.push(`Presentador/a: ${form.nombrePresentador.trim()}`);
-  lines.push(`Horario de Emision: ${form.horarioEmision.trim()}`);
+  lines.push(`Horario de Emisión: ${form.horarioEmision.trim()}`);
   lines.push(`Tipo de Programa: ${tipoLabel || '(No especificado)'}`);
 
   lines.push('');
@@ -386,7 +386,7 @@ function buildPrompt(form: FormData): string {
     lines.push('--- PLAYLIST DE REFERENCIA CARGADA ---');
     lines.push(`Formato detectado: Archivo de playlist`);
     lines.push(`Total de canciones: ${form.playlist.length}`);
-    lines.push(`Frecuencia de presentacion de canciones: ${frecLabel}`);
+    lines.push(`Frecuencia de presentación de canciones: ${frecLabel}`);
     lines.push('');
     lines.push('CANCIONES EN LA PLAYLIST:');
     form.playlist.forEach((song, i) => {
@@ -399,18 +399,18 @@ function buildPrompt(form: FormData): string {
 
     lines.push('');
     lines.push('INSTRUCCION ESPECIAL DE ESTRUCTURA:');
-    lines.push('Como se cargo una playlist de referencia, el libreto DEBE intercalar presentaciones de canciones entre los temas de contenido.');
+    lines.push('Como se cargó una playlist de referencia, el libreto DEBE intercalar presentaciones de canciones entre los temas de contenido.');
     lines.push(`La frecuencia es: ${frecLabel}.`);
-    lines.push('Cada presentacion de cancion debe incluir:');
-    lines.push('- Transicion natural desde el tema anterior hacia la cancion');
-    lines.push('- Nombre del artista y titulo de la cancion');
-    lines.push('- Un dato interesante, anecdota o contexto sobre la cancion o el artista (breve, 1-2 lineas)');
-    lines.push('- Transicion hacia el siguiente tema o seccion');
-    lines.push('NO inventes canciones que no estan en la playlist. Usa EXCLUSIVAMENTE las canciones proporcionadas.');
+    lines.push('Cada presentación de canción debe incluir:');
+    lines.push('- Transición natural desde el tema anterior hacia la canción');
+    lines.push('- Nombre del artista y título de la canción');
+    lines.push('- Un dato interesante, anécdota o contexto sobre la canción o el artista (breve, 1-2 líneas)');
+    lines.push('- Transición hacia el siguiente tema o sección');
+    lines.push('NO inventes canciones que no están en la playlist. Usa EXCLUSIVAMENTE las canciones proporcionadas.');
     lines.push('Distribuye las canciones de la playlist de manera equilibrada a lo largo del libreto.');
   } else {
     lines.push('');
-    lines.push('NO se cargo playlist de referencia. Generar el libreto de contenido sin intercalar canciones.');
+    lines.push('NO se cargó playlist de referencia. Generar el libreto de contenido sin intercalar canciones.');
   }
 
   if (form.informacionAdicional.trim()) {
@@ -679,7 +679,7 @@ export function GeneradorLibretosGenerator() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="horarioEmision" className="text-sm font-medium">
-                      Horario de Emision <span className="text-red-500">*</span>
+                      Horario de Emisión <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       id="horarioEmision"
@@ -731,7 +731,7 @@ export function GeneradorLibretosGenerator() {
                         <Info className="size-3.5 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-[300px] text-xs">
-                        Cada tema genera un bloque de contenido en el libreto. Si hay playlist cargada, se intercalaran presentaciones de canciones entre los temas.
+                        Cada tema genera un bloque de contenido en el libreto. Si hay playlist cargada, se intercalarán presentaciones de canciones entre los temas.
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -779,11 +779,11 @@ export function GeneradorLibretosGenerator() {
                 </div>
               </div>
 
-              {/* Informacion Adicional */}
+              {/* Información Adicional */}
               <div className="border-t border-border pt-5">
                 <div className="flex items-center gap-2 mb-4">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Informacion Adicional
+                    Información Adicional
                   </p>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -859,14 +859,14 @@ export function GeneradorLibretosGenerator() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
                     <Label className="text-sm font-medium">
-                      Frecuencia de presentacion de canciones
+                      Frecuencia de presentación de canciones
                     </Label>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="size-3.5 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-[300px] text-xs">
-                        Cada cuantos temas de contenido se presenta una cancion. La IA generara la transicion y presentacion de la cancion.
+                        Cada cuántos temas de contenido se presenta una canción. La IA generará la transición y presentación de la canción.
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -895,7 +895,7 @@ export function GeneradorLibretosGenerator() {
                     </Badge>
                     {totalDuration > 0 && (
                       <span className="text-xs text-muted-foreground">
-                        Duracion total aprox: {formatTotalDuration(totalDuration)}
+                        Duración total aprox: {formatTotalDuration(totalDuration)}
                       </span>
                     )}
                   </div>
@@ -927,12 +927,12 @@ export function GeneradorLibretosGenerator() {
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div className="space-y-1">
                             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                              Titulo
+                              Título
                             </Label>
                             <Input
                               value={song.titulo}
                               onChange={(e) => updateSong(i, 'titulo', e.target.value)}
-                              placeholder="Titulo de la cancion"
+                              placeholder="Título de la canción"
                               className="h-8 text-sm"
                               disabled={isGenerating}
                             />
@@ -951,7 +951,7 @@ export function GeneradorLibretosGenerator() {
                           </div>
                           <div className="space-y-1">
                             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                              Duracion
+                              Duración
                             </Label>
                             <Input
                               value={song.duracion}
@@ -963,7 +963,7 @@ export function GeneradorLibretosGenerator() {
                           </div>
                           <div className="space-y-1">
                             <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                              Genero
+                              Género
                             </Label>
                             <Input
                               value={song.genero}
@@ -1000,7 +1000,7 @@ export function GeneradorLibretosGenerator() {
                   disabled={isGenerating}
                   className="h-8 gap-1.5 text-xs border-violet-300 text-violet-600 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-400 dark:hover:bg-violet-950/30"
                 >
-                  <Plus className="size-3" /> Agregar cancion manualmente
+                  <Plus className="size-3" /> Agregar canción manualmente
                 </Button>
                 {form.playlist.length === 0 && (
                   <span className="text-xs text-muted-foreground">
@@ -1019,12 +1019,12 @@ export function GeneradorLibretosGenerator() {
             {hasPlaylist ? (
               <ol className="text-xs text-violet-800 dark:text-violet-300 space-y-1.5 list-decimal list-inside">
                 <li>Apertura y saludo al aire</li>
-                <li>Presentacion del programa y tema 1</li>
-                <li><span className="font-semibold text-violet-600 dark:text-violet-400">Presentacion de cancion + transicion</span></li>
+                <li>Presentación del programa y tema 1</li>
+                <li><span className="font-semibold text-violet-600 dark:text-violet-400">Presentación de canción + transición</span></li>
                 <li>Tema 2 de contenido</li>
-                <li><span className="font-semibold text-violet-600 dark:text-violet-400">Presentacion de cancion + transicion</span></li>
+                <li><span className="font-semibold text-violet-600 dark:text-violet-400">Presentación de canción + transición</span></li>
                 <li>Tema 3 de contenido (si aplica)</li>
-                <li><span className="font-semibold text-violet-600 dark:text-violet-400">... asi sucesivamente segun frecuencia configurada</span></li>
+                <li><span className="font-semibold text-violet-600 dark:text-violet-400">... así sucesivamente según frecuencia configurada</span></li>
                 <li>Cierre, resumen y despedida</li>
               </ol>
             ) : (
