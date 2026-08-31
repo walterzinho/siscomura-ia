@@ -110,6 +110,26 @@ export const MODULES: ModuleDef[] = [
     hasUrl: false,
     hasMultiUrl: false,
   },
+  {
+    id: 'sembrando-esperanza',
+    number: 11,
+    name: 'Sembrando Esperanza',
+    description: 'Micro programa de motivación en fe con fundamento bíblico, 3-5 minutos',
+    icon: 'Sun',
+    placeholder: 'Tema, versículo bíblico, tono de oración, datos del presentador...',
+    hasUrl: false,
+    hasMultiUrl: false,
+  },
+  {
+    id: 'bienestar-campesino',
+    number: 12,
+    name: 'Bienestar Campesino',
+    description: 'Reflexión de salud mental rural, libreto de 3-5 minutos con enfoque clínico accesible',
+    icon: 'Heart',
+    placeholder: 'Tema de salud mental, población objetivo, enfoque, fuentes...',
+    hasUrl: false,
+    hasMultiUrl: true,
+  },
 ];
 
 export function getModuleById(id: string): ModuleDef | undefined {

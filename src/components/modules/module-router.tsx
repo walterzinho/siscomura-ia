@@ -17,6 +17,8 @@ const ConexionTerritorial = lazy(() => import('./conexion-territorial').then(m =
 const PerfilesLocutores = lazy(() => import('./perfiles-locutores-ia').then(m => ({ default: m.PerfilesLocutoresIaGenerator })));
 const ContenidoPersonajes = lazy(() => import('./contenido-personajes').then(m => ({ default: m.ContenidoPersonajesGenerator })));
 const GeneradorJingles = lazy(() => import('./generador-jingles').then(m => ({ default: m.GeneradorJinglesGenerator })));
+const SembrandoEsperanza = lazy(() => import('./sembrando-esperanza').then(m => ({ default: m.SembrandoEsperanzaGenerator })));
+const BienestarCampesino = lazy(() => import('./bienestar-campesino').then(m => ({ default: m.BienestarCampesinoGenerator })));
 
 function ModuleSkeleton() {
   return (
@@ -82,6 +84,14 @@ export function ModuleRouter({ moduleId }: ModuleRouterProps) {
 
   if (moduleId === 'generador-jingles') {
     return <Suspense fallback={<ModuleSkeleton />}><GeneradorJingles /></Suspense>;
+  }
+
+  if (moduleId === 'sembrando-esperanza') {
+    return <Suspense fallback={<ModuleSkeleton />}><SembrandoEsperanza /></Suspense>;
+  }
+
+  if (moduleId === 'bienestar-campesino') {
+    return <Suspense fallback={<ModuleSkeleton />}><BienestarCampesino /></Suspense>;
   }
 
   if (moduleDef.hasUrl) {
