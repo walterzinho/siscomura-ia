@@ -2,6 +2,7 @@
 
 import { useAppStore } from '@/lib/store';
 import { MODULES } from '@/lib/modules';
+import { getCurrentVersion } from '@/lib/versions';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -29,6 +30,7 @@ import {
   Sun as SunIcon,
   LogOut,
   User,
+  GitCommitHorizontal,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useSession, signOut } from 'next-auth/react';
@@ -192,6 +194,16 @@ export function Sidebar() {
               {sidebarOpen && <span className="ml-2 text-sm">Historial</span>}
             </Button>
 
+            <Button
+              variant={isActive('versions') ? 'secondary' : 'ghost'}
+              className={`w-full ${sidebarOpen ? 'justify-start' : 'justify-center'}`}
+              onClick={() => setView({ type: 'versions' })}
+              title="Versiones"
+            >
+              <GitCommitHorizontal className="w-4 h-4 flex-shrink-0" />
+              {sidebarOpen && <span className="ml-2 text-sm">Versiones</span>}
+            </Button>
+
             {/* Theme toggle */}
             <Separator className="my-2" />
             <Button
@@ -222,7 +234,7 @@ export function Sidebar() {
               </div>
               <div className="flex items-center gap-1">
                 <Badge variant="outline" className="text-[10px] mr-1">
-                  v1.0
+                  v{getCurrentVersion()}
                 </Badge>
                 <Button
                   variant="ghost"

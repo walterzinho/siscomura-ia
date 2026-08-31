@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, type FormEvent } from 'react';
-import { Radio, Loader2, Copy, Check, Sparkles as SparklesIcon, Info, Music2 } from 'lucide-react';
+import { Radio, Loader2, Copy, Check, Sparkles as SparklesIcon, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -15,13 +15,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAppStore } from '@/lib/store';
-import { DURACION_JINGLE_OPTIONS, RIMA_OPTIONS, ESTROFAS_OPTIONS } from '@/lib/cunas-constants';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 const TIPO_OPTIONS = [
   { value: 'unitario', label: 'Unitario', desc: 'Genera una sola cuña' },
   { value: 'campaña', label: 'Campaña Publicitaria', desc: 'Genera de 3 a 5 cuñas' },
-  { value: 'jingle', label: 'Jingle', desc: 'Canción con rima + locución de complemento' },
 ];
 
 const CLASE_OPTIONS = [
@@ -44,15 +42,11 @@ const TEMATICA_OPTIONS = [
   { value: 'campaña', label: 'Campaña' },
 ];
 
-const isJingle = (tipo: string) => tipo === 'jingle';
-
 interface FormData {
   tipo: string;
   clase: string;
   duracion: string;
   tematica: string;
-  tipoRima: string;
-  numeroEstrofas: string;
   nombreCuña: string;
   nombrePrograma: string;
   horarioEmision: string;
@@ -65,8 +59,6 @@ const INITIAL_FORM: FormData = {
   clase: '',
   duracion: '',
   tematica: '',
-  tipoRima: '',
-  numeroEstrofas: '',
   nombreCuña: '',
   nombrePrograma: '',
   horarioEmision: '',
@@ -77,32 +69,20 @@ const INITIAL_FORM: FormData = {
 function buildPrompt(form: FormData): string {
   const tipoLabel = TIPO_OPTIONS.find((t) => t.value === form.tipo)?.label || form.tipo;
   const claseLabel = CLASE_OPTIONS.find((c) => c.value === form.clase)?.label || form.clase;
-  const isJ = isJingle(form.tipo);
-  const duracionOpts = isJ ? DURACION_JINGLE_OPTIONS : DURACION_OPTIONS;
-  const duracionLabel = duracionOpts.find((d) => d.value === form.duracion)?.label || form.duracion;
+  const duracionLabel = DURACION_OPTIONS.find((d) => d.value === form.duracion)?.label || form.duracion;
   const tematicaLabel = TEMATICA_OPTIONS.find((t) => t.value === form.tematica)?.label || form.tematica;
-  const rimaLabel = RIMA_OPTIONS.find((r) => r.value === form.tipoRima)?.label || form.tipoRima;
 
   const lines: string[] = [];
 
   lines.push(`TIPO: ${tipoLabel}`);
 
-  if (isJ) {
-    lines.push('FORMATO: JINGLE - Genera una pieza que contiene DOS partes:');
-    lines.push('  PARTE 1 - CANTO: Letra rimada que se canta, siguiendo el esquema de rima indicado.');
-    lines.push('  PARTE 2 - LOCUCION: Texto hablado de complemento que refuerza el mensaje del canto.');
-    lines.push('CANTIDAD: Genera un solo jingle.');
-    lines.push(`ESQUEMA DE RIMA: ${rimaLabel}`);
-    lines.push(`NUMERO DE ESTROFAS DEL CANTO: ${form.numeroEstrofas || 'No especificado'}`);
-  } else if (form.tipo === 'campaña') {
+  if (form.tipo === 'campaña') {
     lines.push('CANTIDAD: Genera entre 3 y 5 cuñas para esta campaña.');
   } else {
     lines.push('CANTIDAD: Genera una sola cuña unitaria.');
   }
 
-  if (!isJ) {
-    lines.push(`CLASE: ${claseLabel}`);
-  }
+  lines.push(`CLASE: ${claseLabel}`);
 
   if (form.clase === 'campaña-institucional') {
     lines.push('CIERRE OBLIGATORIO: Cada libreto debe terminar exactamente con la frase: "Una Campaña de Voces Campesinas Punto Co".');
@@ -110,14 +90,12 @@ function buildPrompt(form: FormData): string {
 
   lines.push(`DURACION: ${duracionLabel}`);
 
-  if (!isJ) {
-    lines.push(`TEMATICA: ${tematicaLabel}`);
-  }
+  lines.push(`TEMATICA: ${tematicaLabel}`);
 
   lines.push('');
   lines.push('--- DATOS GENERALES ---');
   if (form.nombreCuña.trim()) {
-    lines.push(`Nombre de la ${isJ ? 'Pieza' : 'Cuña'}: ${form.nombreCuña.trim()}`);
+    lines.push(`Nombre de la Cuña: ${form.nombreCuña.trim()}`);
   }
   if (form.nombrePrograma.trim()) {
     lines.push(`Nombre del Programa, Campaña o Franja: ${form.nombrePrograma.trim()}`);
@@ -144,25 +122,21 @@ export function CunasInstitucionalesGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const isJ = isJingle(form.tipo);
-
   const updateField = (field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleTipoChange = (value: string) => {
-    const wasJingle = isJ;
-    const willBeJingle = isJingle(value);
     setForm((prev) => ({
       ...prev,
       tipo: value,
-      ...(wasJingle !== willBeJingle ? { clase: '', duracion: '', tematica: '', tipoRima: '', numeroEstrofas: '' } : {}),
+      clase: '',
+      duracion: '',
+      tematica: '',
     }));
   };
 
-  const isFormValid = isJ
-    ? form.tipo && form.duracion && form.tipoRima && form.numeroEstrofas
-    : form.tipo && form.clase && form.duracion && form.tematica;
+  const isFormValid = form.tipo && form.clase && form.duracion && form.tematica;
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -224,7 +198,6 @@ export function CunasInstitucionalesGenerator() {
 
   const getSubmitLabel = () => {
     if (form.tipo === 'campaña') return 'Generar Campaña (3-5 Cuñas)';
-    if (isJ) return 'Generar Jingle';
     return 'Generar Cuña';
   };
 
@@ -233,17 +206,15 @@ export function CunasInstitucionalesGenerator() {
       <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
         {/* Module Header */}
         <div className="flex items-start gap-4">
-          <div className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${isJ ? 'bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400'}`}>
-            {isJ ? <Music2 className="size-6" /> : <Radio className="size-6" />}
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+            <Radio className="size-6" />
           </div>
           <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               Cuñas Institucionales
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {isJ
-                ? 'Jingle institucional: canción con rima + locución de complemento.'
-                : 'Cuñas, campañas y locución institucional. Formulario especializado para generar libretos de locución limpios.'}
+              Cuñas, campañas y locución institucional. Formulario especializado para generar libretos de locución limpios.
             </p>
           </div>
         </div>
@@ -273,66 +244,33 @@ export function CunasInstitucionalesGenerator() {
               </Select>
             </div>
 
-            {isJ ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="tipoRima" className="text-sm font-medium">
-                    Esquema de Rima <span className="text-red-500">*</span>
-                  </Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="size-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[300px] text-xs">
-                      Define cómo riman los versos del canto del jingle. Cada esquema produce un ritmo y sensación diferente.
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Select value={form.tipoRima} onValueChange={(v) => updateField('tipoRima', v)}>
-                  <SelectTrigger id="tipoRima" className="w-full">
-                    <SelectValue placeholder="Selecciona rima..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RIMA_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        <span className="flex flex-col">
-                          <span>{opt.label}</span>
-                          <span className="text-xs text-muted-foreground">{opt.desc}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="clase" className="text-sm font-medium">
+                  Clase
+                </Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="size-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[240px] text-xs">
+                    Si seleccionas &quot;Campaña Institucional&quot;, cada libreto terminará con &quot;Una Campaña de Voces Campesinas Punto Co&quot;.
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="clase" className="text-sm font-medium">
-                    Clase
-                  </Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="size-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[240px] text-xs">
-                      Si seleccionas &quot;Campaña Institucional&quot;, cada libreto terminará con &quot;Una Campaña de Voces Campesinas Punto Co&quot;.
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Select value={form.clase} onValueChange={(v) => updateField('clase', v)}>
-                  <SelectTrigger id="clase" className="w-full">
-                    <SelectValue placeholder="Selecciona clase..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CLASE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+              <Select value={form.clase} onValueChange={(v) => updateField('clase', v)}>
+                <SelectTrigger id="clase" className="w-full">
+                  <SelectValue placeholder="Selecciona clase..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLASE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Row 2: Duración + (Temática or Estrofas) */}
@@ -346,7 +284,7 @@ export function CunasInstitucionalesGenerator() {
                   <SelectValue placeholder="Selecciona duración..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(isJ ? DURACION_JINGLE_OPTIONS : DURACION_OPTIONS).map((opt) => (
+                  {DURACION_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </SelectItem>
@@ -355,75 +293,24 @@ export function CunasInstitucionalesGenerator() {
               </Select>
             </div>
 
-            {isJ ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="numeroEstrofas" className="text-sm font-medium">
-                    Estrofas del Canto <span className="text-red-500">*</span>
-                  </Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="size-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[260px] text-xs">
-                      Cantidad de estrofas que tendrá la parte cantada del jingle. Más estrofas = jingle más largo.
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Select value={form.numeroEstrofas} onValueChange={(v) => updateField('numeroEstrofas', v)}>
-                  <SelectTrigger id="numeroEstrofas" className="w-full">
-                    <SelectValue placeholder="Selecciona..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ESTROFAS_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="tematica" className="text-sm font-medium">
-                  Temática
-                </Label>
-                <Select value={form.tematica} onValueChange={(v) => updateField('tematica', v)}>
-                  <SelectTrigger id="tematica" className="w-full">
-                    <SelectValue placeholder="Selecciona temática..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TEMATICA_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          {/* Jingle Indicator */}
-          {isJ && (
-            <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-900 dark:bg-purple-950/40">
-              <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-2">
-                Formato de Jingle
-              </p>
-              <p className="text-xs text-purple-800 dark:text-purple-300 mb-2">
-                El jingle se compone de dos partes:
-              </p>
-              <ol className="text-xs text-purple-800 dark:text-purple-300 space-y-1 list-decimal list-inside">
-                <li><strong>CANTO:</strong> Letra rimada ({form.tipoRima || 'esquema seleccionado'}) con {form.numeroEstrofas || '?'} estrofas. Es la parte que se canta.</li>
-                <li><strong>LOCUCION:</strong> Texto hablado de complemento que refuerza el mensaje. Se dice al micrófono.</li>
-              </ol>
-              {form.tipoRima === 'interna' && (
-                <p className="mt-2 text-xs text-purple-700 dark:text-purple-400 italic">
-                  Rima interna: la palabra del medio del verso rima con la palabra final del mismo verso.
-                </p>
-              )}
+            <div className="space-y-2">
+              <Label htmlFor="tematica" className="text-sm font-medium">
+                Temática
+              </Label>
+              <Select value={form.tematica} onValueChange={(v) => updateField('tematica', v)}>
+                <SelectTrigger id="tematica" className="w-full">
+                  <SelectValue placeholder="Selecciona temática..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEMATICA_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
+          </div>
 
           {/* Separator - Datos Generales */}
           <div className="border-t border-border pt-5">
@@ -433,11 +320,11 @@ export function CunasInstitucionalesGenerator() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="nombreCuña" className="text-sm font-medium">
-                  Nombre de la {isJ ? 'Pieza' : 'Cuña'}
+                  Nombre de la Cuña
                 </Label>
                 <Input
                   id="nombreCuña"
-                  placeholder={isJ ? 'Ej: Jingle Voces Campesinas' : 'Ej: Identificación Matutina'}
+                  placeholder="Ej: Identificación Matutina"
                   value={form.nombreCuña}
                   onChange={(e) => updateField('nombreCuña', e.target.value)}
                   disabled={isGenerating}
@@ -480,13 +367,11 @@ export function CunasInstitucionalesGenerator() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="objetivo" className="text-sm font-medium">
-                  Objetivo de la {isJ ? 'Pieza' : 'Cuña o Campaña'}
+                  Objetivo de la Cuña o Campaña
                 </Label>
                 <Textarea
                   id="objetivo"
-                  placeholder={isJ
-                    ? 'Ej: Crear identidad sonora para la emisora que la audiencia recuerde y repita...'
-                    : '¿Qué se busca lograr con esta cuña o campaña? Ej: Informar a la audiencia sobre el nuevo horario de programas deportivos...'}
+                  placeholder="¿Qué se busca lograr con esta cuña o campaña? Ej: Informar a la audiencia sobre el nuevo horario de programas deportivos..."
                   value={form.objetivo}
                   onChange={(e) => updateField('objetivo', e.target.value)}
                   rows={3}
@@ -505,17 +390,13 @@ export function CunasInstitucionalesGenerator() {
                       <Info className="size-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-[260px] text-xs">
-                      {isJ
-                        ? 'La frase o idea central que el canto del jingle debe repetir y grabar en la mente del oyente.'
-                        : 'Este espacio orienta hacia dónde se debe dirigir el libreto. El mensaje principal que debe quedar en la mente del oyente.'}
+                      Este espacio orienta hacia dónde se debe dirigir el libreto. El mensaje principal que debe quedar en la mente del oyente.
                     </TooltipContent>
                   </Tooltip>
                 </div>
                 <Textarea
                   id="mensajeResaltar"
-                  placeholder={isJ
-                    ? 'Ej: Voces Campesinas, la voz del campo colombiano...'
-                    : 'Ej: La región se informa con nosotros, sintoniza la mejor programación campesina del oriente colombiano...'}
+                  placeholder="Ej: La región se informa con nosotros, sintoniza la mejor programación campesina del oriente colombiano..."
                   value={form.mensajeResaltar}
                   onChange={(e) => updateField('mensajeResaltar', e.target.value)}
                   rows={3}
@@ -548,7 +429,7 @@ export function CunasInstitucionalesGenerator() {
             <Button
               type="submit"
               disabled={!isFormValid || isGenerating}
-              className={isJ ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
             >
               {isGenerating ? (
                 <>
@@ -590,9 +471,7 @@ export function CunasInstitucionalesGenerator() {
                 {form.tipo === 'campaña' && (
                   <CardDescription className="mt-1">Campaña generada con múltiples cuñas</CardDescription>
                 )}
-                {isJ && (
-                  <CardDescription className="mt-1">Jingle con canto rimado y locución</CardDescription>
-                )}
+
               </div>
               <Button
                 variant="outline"
@@ -614,7 +493,7 @@ export function CunasInstitucionalesGenerator() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className={["max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-foreground [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full", isJ ? "[&::-webkit-scrollbar-thumb]:bg-purple-200 [&::-webkit-scrollbar-thumb]:dark:bg-purple-800" : "[&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:dark:bg-emerald-800"].join(' ')}>
+              <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-foreground [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-emerald-200 [&::-webkit-scrollbar-thumb]:dark:bg-emerald-800">
                 {result}
               </div>
             </CardContent>

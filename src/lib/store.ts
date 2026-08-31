@@ -7,6 +7,7 @@ type ViewType =
   | { type: 'history' }
   | { type: 'prompts' }
   | { type: 'station' }
+  | { type: 'versions' }
   | { type: 'home' };
 
 interface AppState {

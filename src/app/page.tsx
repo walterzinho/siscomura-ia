@@ -9,6 +9,7 @@ import { ApiKeysManager } from '@/components/settings/api-keys';
 import { HistoryPanel } from '@/components/settings/history';
 import { PromptEditor } from '@/components/settings/prompt-editor';
 import { StationConfigPanel } from '@/components/settings/station-config';
+import { VersionsPanel } from '@/components/settings/versions-panel';
 import { Toaster } from 'sonner';
 
 export default function Page() {
@@ -30,6 +31,8 @@ export default function Page() {
         return 'Editar Prompts';
       case 'station':
         return 'Datos Emisora';
+      case 'versions':
+        return 'Versiones';
       default:
         return 'Siscomura.ia';
     }
@@ -49,6 +52,8 @@ export default function Page() {
         return <PromptEditor />;
       case 'station':
         return <StationConfigPanel />;
+      case 'versions':
+        return <VersionsPanel />;
       default:
         return <HomeView />;
     }
