@@ -9,18 +9,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PUBLIC_PATHS = ['/login', '/api/auth'];
 
-const PROTECTED_API_PREFIXES = [
-  '/api/generate',
-  '/api/generate-phrases',
-  '/api/generate-campaign',
-  '/api/generate-profile',
-  '/api/keys',
-  '/api/prompts',
-  '/api/station',
-  '/api/generations',
-  '/api/fetch-url',
-];
-
 export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
