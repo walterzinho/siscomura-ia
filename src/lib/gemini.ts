@@ -109,7 +109,7 @@ export async function callGemini(
     );
   }
 
-  const model = apiKey.model || 'gemini-3.6-flash';
+  const model = apiKey.model || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.key}`;
 
   const body: Record<string, unknown> = {

@@ -8,6 +8,18 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: '1.3.1',
+    date: '2026-08-31',
+    type: 'fix',
+    description: 'Corrección de modelo Gemini: gemini-3.6-flash → gemini-2.5-flash',
+    details: [
+      'El modelo gemini-3.6-flash no existe en la API de Google',
+      'Cambiado a gemini-2.5-flash (modelo actual y recomendado)',
+      'Selector de modelo con opciones válidas al agregar API Key',
+      'Corregido en: gemini.ts, db.ts, validations.ts, api-keys.tsx, keys/route.ts',
+    ],
+  },
+  {
     version: '1.3.0',
     date: '2026-08-31',
     type: 'improvement',

@@ -47,7 +47,7 @@ export function ApiKeysManager() {
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [newName, setNewName] = useState('');
   const [newKey, setNewKey] = useState('');
-  const [newModel, setNewModel] = useState('gemini-3.6-flash');
+  const [newModel, setNewModel] = useState('gemini-2.5-flash');
   const [saving, setSaving] = useState(false);
 
   const fetchKeys = useCallback(async () => {
@@ -84,7 +84,7 @@ export function ApiKeysManager() {
         toast.success('API Key agregada correctamente');
         setNewName('');
         setNewKey('');
-        setNewModel('gemini-3.6-flash');
+        setNewModel('gemini-2.5-flash');
         setShowAddDialog(false);
         fetchKeys();
       } else {
@@ -175,12 +175,17 @@ export function ApiKeysManager() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="key-model">Modelo</Label>
-                <Input
+                <select
                   id="key-model"
-                  placeholder="gemini-3.6-flash"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   value={newModel}
                   onChange={(e) => setNewModel(e.target.value)}
-                />
+                >
+                  <option value="gemini-2.5-flash">gemini-2.5-flash (Recomendado)</option>
+                  <option value="gemini-2.5-pro">gemini-2.5-pro (Más potente)</option>
+                  <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy)</option>
+                </select>
               </div>
               <Button
                 className="w-full bg-emerald-600 hover:bg-emerald-700"
