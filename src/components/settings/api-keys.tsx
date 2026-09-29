@@ -47,7 +47,7 @@ export function ApiKeysManager() {
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [newName, setNewName] = useState('');
   const [newKey, setNewKey] = useState('');
-  const [newModel, setNewModel] = useState('gemini-2.5-flash');
+  const [newModel, setNewModel] = useState('gemini-3.5-flash-lite');
   const [saving, setSaving] = useState(false);
 
   const fetchKeys = useCallback(async () => {
@@ -84,7 +84,7 @@ export function ApiKeysManager() {
         toast.success('API Key agregada correctamente');
         setNewName('');
         setNewKey('');
-        setNewModel('gemini-2.5-flash');
+        setNewModel('gemini-3.5-flash-lite');
         setShowAddDialog(false);
         fetchKeys();
       } else {
@@ -181,10 +181,10 @@ export function ApiKeysManager() {
                   value={newModel}
                   onChange={(e) => setNewModel(e.target.value)}
                 >
-                  <option value="gemini-2.5-flash">gemini-2.5-flash (Recomendado)</option>
+                  <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite ($0.30 Recomendado)</option>
+                  <option value="gemini-3.5-flash">gemini-3.5-flash ($1.50)</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash (Económico)</option>
                   <option value="gemini-2.5-pro">gemini-2.5-pro (Más potente)</option>
-                  <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy)</option>
                 </select>
               </div>
               <Button

@@ -9,7 +9,7 @@ import { z } from 'zod';
 export const createApiKeySchema = z.object({
   name: z.string().min(1, 'Se requiere nombre').max(100),
   key: z.string().min(10, 'API Key muy corta').max(200),
-  model: z.string().optional().default('gemini-2.5-flash'),
+  model: z.string().optional().default('gemini-3.5-flash-lite'),
 });
 
 export const updateApiKeySchema = z.object({

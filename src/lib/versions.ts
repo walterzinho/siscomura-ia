@@ -11,12 +11,13 @@ export const VERSIONS: VersionEntry[] = [
     version: '1.3.1',
     date: '2026-08-31',
     type: 'fix',
-    description: 'Corrección de modelo Gemini: gemini-3.6-flash → gemini-2.5-flash',
+    description: 'Corregido modelo Gemini: gemini-3.6-flash no existe → gemini-3.5-flash-lite',
     details: [
-      'El modelo gemini-3.6-flash no existe en la API de Google',
-      'Cambiado a gemini-2.5-flash (modelo actual y recomendado)',
-      'Selector de modelo con opciones válidas al agregar API Key',
+      'El modelo gemini-3.6-flash nunca existió en la API de Google',
+      'Default cambiado a gemini-3.5-flash-lite ($0.30/1M tokens, recomendado)',
+      'Selector actualizado con modelos vigentes: 3.5-flash-lite, 3.5-flash, 2.5-flash, 2.5-pro',
       'Corregido en: gemini.ts, db.ts, validations.ts, api-keys.tsx, keys/route.ts',
+      'Eliminadas páginas Clerk (sign-in/sign-up) y examples/ sin uso',
     ],
   },
   {
