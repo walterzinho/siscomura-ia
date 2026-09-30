@@ -8,6 +8,18 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: '1.3.3',
+    date: '2026-09-30',
+    type: 'fix',
+    description: 'Corregido error: gemini-2.5-flash ya no disponible para nuevos usuarios',
+    details: [
+      'Eliminados modelos deprecados del selector: gemini-2.5-flash, gemini-2.0-flash, gemini-2.0-flash-lite',
+      'Auto-fix: si una API Key guardada usa un modelo deprecado, se reemplaza automáticamente al generar',
+      'Migración automática en BD: claves con modelos viejos se actualizan al cargar',
+      'Modelos vigentes: 3.5 Flash Lite (recomendado), 3.5 Flash, 2.5 Flash Lite, 2.5 Pro',
+    ],
+  },
+  {
     version: '1.3.2',
     date: '2026-09-30',
     type: 'improvement',

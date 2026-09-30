@@ -52,11 +52,8 @@ export function ApiKeysManager() {
   const GEMINI_MODELS = [
     { value: 'gemini-3.5-flash-lite', label: '3.5 Flash Lite', detail: '$0.30/1M · Recomendado', group: 'Gemini 3.5' },
     { value: 'gemini-3.5-flash', label: '3.5 Flash', detail: '$1.50/1M · Rápido + potente', group: 'Gemini 3.5' },
-    { value: 'gemini-2.5-flash', label: '2.5 Flash', detail: 'Económico', group: 'Gemini 2.5' },
     { value: 'gemini-2.5-flash-lite', label: '2.5 Flash Lite', detail: 'Muy económico', group: 'Gemini 2.5' },
     { value: 'gemini-2.5-pro', label: '2.5 Pro', detail: 'Más potente', group: 'Gemini 2.5' },
-    { value: 'gemini-2.0-flash', label: '2.0 Flash', detail: 'Estable', group: 'Gemini 2.0' },
-    { value: 'gemini-2.0-flash-lite', label: '2.0 Flash Lite', detail: 'Muy estable + económico', group: 'Gemini 2.0' },
   ];
   const [saving, setSaving] = useState(false);
 

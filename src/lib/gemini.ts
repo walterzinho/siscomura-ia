@@ -85,6 +85,18 @@ export async function rotateApiKeyUsage(apiKeyId: string) {
   });
 }
 
+// Models that Google has deprecated — auto-replace on call
+const DEPRECATED_MODEL_MAP: Record<string, string> = {
+  'gemini-2.5-flash': 'gemini-3.5-flash-lite',
+  'gemini-2.0-flash': 'gemini-3.5-flash-lite',
+  'gemini-2.0-flash-lite': 'gemini-3.5-flash-lite',
+  'gemini-3.6-flash': 'gemini-3.5-flash',
+};
+
+function fixModel(model: string): string {
+  return DEPRECATED_MODEL_MAP[model] || model;
+}
+
 export async function callGemini(
   moduleId: string,
   prompt: string,
@@ -109,7 +121,8 @@ export async function callGemini(
     );
   }
 
-  const model = apiKey.model || 'gemini-3.5-flash-lite';
+  const rawModel = apiKey.model || 'gemini-3.5-flash-lite';
+  const model = fixModel(rawModel);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.key}`;
 
   const body: Record<string, unknown> = {

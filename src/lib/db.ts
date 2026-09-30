@@ -116,6 +116,33 @@ async function ensureTables() {
   _migrated = true;
 }
 
+/* ---- Auto-fix deprecated Gemini models ------------------------ */
+
+const DEPRECATED_MODELS: Record<string, string> = {
+  'gemini-2.5-flash': 'gemini-3.5-flash-lite',
+  'gemini-2.0-flash': 'gemini-3.5-flash-lite',
+  'gemini-2.0-flash-lite': 'gemini-3.5-flash-lite',
+  'gemini-3.6-flash': 'gemini-3.5-flash',
+};
+
+let _modelsFixed = false;
+
+async function fixDeprecatedModels() {
+  if (_modelsFixed) return;
+  _modelsFixed = true;
+  try {
+    const c = getClient();
+    for (const [oldModel, newModel] of Object.entries(DEPRECATED_MODELS)) {
+      await c.execute({
+        sql: `UPDATE ApiKey SET model = ?, updatedAt = datetime('now') WHERE model = ?`,
+        args: [newModel, oldModel],
+      });
+    }
+  } catch {
+    // Non-critical — don't block startup
+  }
+}
+
 /* ---- Public db object (Prisma-compatible API) ------------------ */
 
 export const db = {
@@ -133,6 +160,7 @@ export const db = {
       take?: number;
     }) {
       await ensureTables();
+      await fixDeprecatedModels();
       const params: InValue[] = [];
       const conditions: string[] = [];
 
