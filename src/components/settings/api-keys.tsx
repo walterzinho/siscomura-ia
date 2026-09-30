@@ -48,6 +48,16 @@ export function ApiKeysManager() {
   const [newName, setNewName] = useState('');
   const [newKey, setNewKey] = useState('');
   const [newModel, setNewModel] = useState('gemini-3.5-flash-lite');
+
+  const GEMINI_MODELS = [
+    { value: 'gemini-3.5-flash-lite', label: '3.5 Flash Lite', detail: '$0.30/1M · Recomendado', group: 'Gemini 3.5' },
+    { value: 'gemini-3.5-flash', label: '3.5 Flash', detail: '$1.50/1M · Rápido + potente', group: 'Gemini 3.5' },
+    { value: 'gemini-2.5-flash', label: '2.5 Flash', detail: 'Económico', group: 'Gemini 2.5' },
+    { value: 'gemini-2.5-flash-lite', label: '2.5 Flash Lite', detail: 'Muy económico', group: 'Gemini 2.5' },
+    { value: 'gemini-2.5-pro', label: '2.5 Pro', detail: 'Más potente', group: 'Gemini 2.5' },
+    { value: 'gemini-2.0-flash', label: '2.0 Flash', detail: 'Estable', group: 'Gemini 2.0' },
+    { value: 'gemini-2.0-flash-lite', label: '2.0 Flash Lite', detail: 'Muy estable + económico', group: 'Gemini 2.0' },
+  ];
   const [saving, setSaving] = useState(false);
 
   const fetchKeys = useCallback(async () => {
@@ -181,10 +191,11 @@ export function ApiKeysManager() {
                   value={newModel}
                   onChange={(e) => setNewModel(e.target.value)}
                 >
-                  <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite ($0.30 Recomendado)</option>
-                  <option value="gemini-3.5-flash">gemini-3.5-flash ($1.50)</option>
-                  <option value="gemini-2.5-flash">gemini-2.5-flash (Económico)</option>
-                  <option value="gemini-2.5-pro">gemini-2.5-pro (Más potente)</option>
+                  {GEMINI_MODELS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label} — {m.detail}
+                    </option>
+                  ))}
                 </select>
               </div>
               <Button

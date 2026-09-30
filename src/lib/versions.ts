@@ -8,6 +8,18 @@ export interface VersionEntry {
 
 export const VERSIONS: VersionEntry[] = [
   {
+    version: '1.3.2',
+    date: '2026-09-30',
+    type: 'improvement',
+    description: 'Selector de modelos Gemini ampliado con modelos 2.0 y 2.5 Flash Lite',
+    details: [
+      '7 modelos disponibles: 3.5 Flash Lite, 3.5 Flash, 2.5 Flash, 2.5 Flash Lite, 2.5 Pro, 2.0 Flash, 2.0 Flash Lite',
+      'Modelos verificados contra la API de Google (ai.google.dev)',
+      'Selector dinámico con nombre + detalle por modelo',
+      'Default: gemini-3.5-flash-lite ($0.30/1M tokens, mejor relación calidad/precio)',
+    ],
+  },
+  {
     version: '1.3.1',
     date: '2026-08-31',
     type: 'fix',
